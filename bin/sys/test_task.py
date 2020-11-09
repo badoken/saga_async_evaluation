@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from bin.sys.system import TimeUnit
+from bin.sys.time import TimeUnit
 from bin.sys.task import SystemOperation, Task
 
 

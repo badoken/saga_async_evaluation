@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-from bin.sys.system import TimeAffected, TimeUnit
+from bin.sys.time import TimeAffected, TimeUnit
 
 
 @dataclass
@@ -23,7 +23,7 @@ class Task(TimeAffected):
     def __post_init__(self):
         if not self.operations:
             raise ValueError('Task should contain operations')
-        self.current_operation_duration = TimeUnit(0)
+        self._current_operation_duration = TimeUnit(0)
 
     def ticked(self):
         if not self.operations:
@@ -31,11 +31,11 @@ class Task(TimeAffected):
 
         self._increment_time()
 
-        next_operation_time = self.current_operation_duration.val - self._current_operation().duration.val
+        next_operation_time = self._current_operation_duration.val - self._current_operation().duration.val
         if next_operation_time >= 0:
             self.operations.pop(0)
             # noinspection PyAttributeOutsideInit
-            self.current_operation_duration = TimeUnit(next_operation_time)
+            self._current_operation_duration = TimeUnit(next_operation_time)
 
     def is_complete(self) -> bool:
         return not self.operations
@@ -57,4 +57,4 @@ class Task(TimeAffected):
         if not self.processing and self._current_operation_is_to_process():
             return
 
-        self.current_operation_duration.increment()
+        self._current_operation_duration.increment()

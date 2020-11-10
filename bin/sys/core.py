@@ -17,9 +17,13 @@ class Mode(Enum):
 class Core(TimeAffected):
     unassigned_tasks_pool: List[Task]
     mode: Mode
+    id: int = -1
+
+    def __post_init__(self):
+        self._processing = None
 
     def ticked(self):
-        self._assign_new_task()
+        self._configure_current_task()
 
         if self._processing:
             self._handle_current_task()
@@ -36,7 +40,10 @@ class Core(TimeAffected):
         self._processing.processing = False
         self._processing = None
 
-    def _assign_new_task(self):
+    def _configure_current_task(self):
+        if self._processing is not None:
+            return
+
         if not self.unassigned_tasks_pool:
             return
         self._processing = self.unassigned_tasks_pool.pop(0)
@@ -45,8 +52,11 @@ class Core(TimeAffected):
 
 # noinspection PyMethodMayBeStatic
 class CoreFactory:
+    def __init__(self):
+        self.last_id = 1
+
     def new(self, count: int, unassigned_tasks_pool: List[Task], mode: Mode) -> List[Core]:
         cores = []
         for i in range(count):
-            cores.append(Core(unassigned_tasks_pool, mode))
+            cores.append(Core(unassigned_tasks_pool, mode, id=self.last_id))
         return cores

@@ -25,15 +25,28 @@ class TestCore(TestCase):
     def test_ticked_should_stick_sync_core_with_task_until_its_finished(self):
         for to_process in [True, False]:
             # given
-            task = Task(operations=[SystemOperation(to_process=to_process, name="1", duration=TimeUnit(2))])
-            pool = [task]
+            task1 = Task(operations=[SystemOperation(to_process=to_process, name="1", duration=TimeUnit(3))])
+            task2 = Task(operations=[SystemOperation(to_process=to_process, name="2", duration=TimeUnit(2))])
+            pool = [task1, task2]
 
             core = Core(unassigned_tasks_pool=pool, mode=Mode.SYNC)
 
             # then
             core.ticked()
+            self.assertEqual([task2], pool)
+            self.assertEqual(task1, core._processing)
+
+            core.ticked()
+            self.assertEqual([task2], pool)
+            self.assertEqual(task1, core._processing)
+
+            core.ticked()
+            self.assertEqual([task2], pool)
+            self.assertEqual(None, core._processing)
+
+            core.ticked()
             self.assertEqual([], pool)
-            self.assertEqual(task, core._processing)
+            self.assertEqual(task2, core._processing)
 
             core.ticked()
             self.assertEqual([], pool)

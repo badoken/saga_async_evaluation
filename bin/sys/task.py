@@ -30,6 +30,7 @@ class Task(TimeAffected):
             return
 
         self._increment_time()
+        print("Task TODO_NAME tick, operation: " + self._current_operation().name)
 
         next_operation_time = self._current_operation_duration.val - self._current_operation().duration.val
         if next_operation_time >= 0:

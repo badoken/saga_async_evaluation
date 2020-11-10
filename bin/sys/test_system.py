@@ -12,8 +12,8 @@ from bin.sys.time import TimeUnit
 class TestSystem(TestCase):
     def test_tick_should_tick_cores_each_time(self):
         # given
-        core_factory, core = self.core_factory_that_produces_core()
-        system = System(core_factory=core_factory, cores_count=1, processing_mode=Mode.ASYNC, tasks_pool=[])
+        core_factory, core = core_factory_that_produces_mocked_core()
+        system = System(core_factory=core_factory, cores_count=1, processing_mode=Mode.ASYNC)
 
         # when
         system.tick()
@@ -26,27 +26,36 @@ class TestSystem(TestCase):
         task = Task(operations=[SystemOperation(False, "op", TimeUnit(1))])
         task.ticked = Mock()
 
-        task_pool = [task]
-
-        core_factory, _ = self.core_factory_that_produces_core()
-        system = System(core_factory=core_factory, cores_count=1, processing_mode=Mode.ASYNC, tasks_pool=task_pool)
+        core_factory, core = core_factory_that_produces_mocked_core()
+        system = System(core_factory=core_factory, cores_count=1, processing_mode=Mode.ASYNC)
 
         # then
+        system.publish_task(task)
+
         system.tick()
         task.ticked.assert_called_once()
 
-        task_pool.pop(0)
+        core.unassigned_tasks_pool.pop(0)
         system.tick()
         task.ticked.assert_called_once()
 
-        task_pool.append(task)
+        system.publish_task(task)
         system.tick()
         task.ticked.assert_has_calls(calls=[call(), call()])
 
-    @staticmethod
-    def core_factory_that_produces_core() -> Tuple[CoreFactory, Core]:
-        core = Core(unassigned_tasks_pool=[], mode=Mode.ASYNC)
-        core.ticked = Mock()
-        core_factory = CoreFactory()
-        core_factory.new = Mock(return_value=[core])
-        return core_factory, core
+
+def core_factory_that_produces_mocked_core() -> Tuple[CoreFactory, Core]:
+    core = Core(unassigned_tasks_pool=[], mode=Mode.ASYNC)
+    core.ticked = Mock()
+
+    core_factory = CoreFactory()
+    core_factory.new = lambda count, unassigned_tasks_pool, mode: \
+        [core_with_overwritten_tasks_pool(core, unassigned_tasks_pool)] if count is 1 else ValueError(
+            "Count should be 1")
+
+    return core_factory, core
+
+
+def core_with_overwritten_tasks_pool(core, tasks_pool) -> Core:
+    core.unassigned_tasks_pool = tasks_pool
+    return core

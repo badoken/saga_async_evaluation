@@ -1,62 +1,98 @@
-from enum import Enum
 from typing import List, Optional
 
-from bin.sys.time import TimeAffected
-
-from dataclasses import dataclass
-
-from bin.sys.task import Task
+from bin.sys.sys_thread import SysThread
+from bin.sys.time import TimeAffected, Duration, TimeDelta
 
 
-class Mode(Enum):
-    ASYNC = 1
-    SYNC = 2
-
-
-@dataclass
 class Core(TimeAffected):
-    unassigned_tasks_pool: List[Task]
-    mode: Mode
-    id: int = -1
+    def __init__(self, processing_interval: Duration, identifier: int = -1):
+        self.processing_interval = processing_interval
+        self.identifier = identifier
+        self._context_switch_cost = Duration(micros=2)  # TODO: constants or to thread
+        self._threads_pool: List[SysThread] = []
+        self._processing_slot: Optional[SysThread] = None
+        self._current_thread_processing_duration: Duration = Duration.zero()
+        self._context_switch_duration: Duration = Duration.zero()
 
-    def __post_init__(self):
-        self._processing = None
+    def assign(self, thread: SysThread):
+        self._threads_pool.append(thread)
+        self._assign_first_from_pool_if_starving()
 
-    def ticked(self):
-        self._configure_current_task()
+    def ticked(self, time_delta: TimeDelta):
+        self._assign_first_from_pool_if_starving()
 
-        if self._processing:
-            self._handle_current_task()
-
-    def _handle_current_task(self):
-        self._processing.ticked()
-        if self._processing.is_complete():
-            self._stop_processing_current_task()
-        elif self._processing.is_waiting() and self.mode is Mode.ASYNC:
-            self.unassigned_tasks_pool.append(self._processing)
-            self._stop_processing_current_task()
-
-    def _stop_processing_current_task(self):
-        self._processing.processing = False
-        self._processing = None
-
-    def _configure_current_task(self):
-        if self._processing is not None:
+        if self._processing_slot is None:
             return
 
-        if not self.unassigned_tasks_pool:
+        if self._current_thread_processing_duration >= self.processing_interval and self._threads_pool:
+            self._context_switch_duration += time_delta.duration
+
+            if self._context_switch_duration <= self._context_switch_cost:
+                return
+
+            self._reset_counters()
+            unasigned = self._unassign_current()
+            self._threads_pool.append(unasigned)
+
+        else:
+            print("Core " + str(self.identifier) + " triggering " + str(self._processing_slot))
+            self._processing_slot.ticked(time_delta)
+            self._current_thread_processing_duration += time_delta.duration
+            self._handle_if_finished()
+
+    def is_starving(self) -> bool:
+        return self._processing_slot is None and not self._threads_pool
+
+    def __str__(self):
+        return self._as_string()
+
+    def __repr__(self):
+        return self._as_string()
+
+    def _as_string(self):
+        return "Core(" + str(self.identifier) + ")"
+
+    def _assign_first_from_pool_if_starving(self):
+        if self._processing_slot is not None:
             return
-        self._processing = self.unassigned_tasks_pool.pop(0)
-        self._processing.processing = True
+        if not self._threads_pool:
+            return
+        self._processing_slot = self._threads_pool.pop(0)
+        self._processing_slot.set_processing(True)
+
+    def _reset_counters(self):
+        self._context_switch_duration = Duration.zero()
+        self._current_thread_processing_duration = Duration.zero()
+
+    def _handle_if_finished(self):
+        if self._processing_slot is None:
+            return
+        if not self._processing_slot.is_finished():
+            return
+        self._unassign_current()
+        self._assign_first_from_pool_if_starving()
+
+    def _unassign_current(self) -> Optional[SysThread]:
+        if self._processing_slot is None:
+            return None
+        self._reset_counters()
+        unassigned: SysThread = self._processing_slot
+        self._processing_slot = None
+        unassigned.set_processing(False)
+        return unassigned
 
 
-# noinspection PyMethodMayBeStatic
 class CoreFactory:
     def __init__(self):
-        self.last_id = 1
+        self.last_id = -1
 
-    def new(self, count: int, unassigned_tasks_pool: List[Task], mode: Mode) -> List[Core]:
+    def new(
+            self,
+            count: int,
+            processing_interval: Duration
+    ) -> List[Core]:
         cores = []
         for i in range(count):
-            cores.append(Core(unassigned_tasks_pool, mode, id=self.last_id))
+            self.last_id += 1
+            cores.append(Core(identifier=self.last_id, processing_interval=processing_interval))
         return cores

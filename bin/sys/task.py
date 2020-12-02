@@ -1,51 +1,69 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-from bin.sys.time import TimeAffected, TimeUnit
+from bin.sys.time import TimeAffected, Duration, TimeDelta
 
 
 @dataclass
 class SystemOperation:
     to_process: bool
     name: str
-    duration: TimeUnit
+    duration: Duration
 
     def __post_init__(self):
-        if self.duration.val <= 0:
+        if self.duration.is_zero or self.duration.is_negative:
             raise ValueError('Duration of ' + str(self) + ' should be positive')
 
 
-@dataclass
 class Task(TimeAffected):
-    operations: List[SystemOperation]
-    processing: bool = False
-
-    def __post_init__(self):
-        if not self.operations:
+    def __init__(
+            self,
+            operations: List[SystemOperation],
+            processing: bool = False,
+            name: Optional[str] = None
+    ):
+        if not operations:
             raise ValueError('Task should contain operations')
-        self._current_operation_duration = TimeUnit(0)
+        self.operations: List[SystemOperation] = operations
+        self.processing: bool = processing
+        self.name = name if name else "_❔task❔_"
+        self._current_operation_processed_time: Duration = Duration.zero()
+        self._last_time_delta: Optional[TimeDelta] = None
 
-    def ticked(self):
-        if not self.operations:
+    def ticked(self, time_delta: TimeDelta):
+        if self.is_complete():
             return
+        if self.is_waiting():
+            raise ValueError(str(self) + " is waiting but ticked with " + str(time_delta))
+        if self._should_skip_same_time_delta_update(time_delta):
+            return
+        self._increment_time_processing(time_delta)
+        self._handle_if_operation_finished()
 
-        self._increment_time()
-        print("Task TODO_NAME tick, operation: " + self._current_operation().name)
-
-        next_operation_time = self._current_operation_duration.val - self._current_operation().duration.val
-        if next_operation_time >= 0:
-            self.operations.pop(0)
-            # noinspection PyAttributeOutsideInit
-            self._current_operation_duration = TimeUnit(next_operation_time)
+    def wait(self, time_delta: TimeDelta):
+        if self.is_complete():
+            return
+        if not self.is_waiting():
+            raise ValueError(str(self) + " is processing but triggered to wait " + str(time_delta))
+        if self._should_skip_same_time_delta_update(time_delta):
+            return
+        self._increment_time_waiting(time_delta)
+        self._handle_if_operation_finished()
 
     def is_complete(self) -> bool:
         return not self.operations
 
     def is_waiting(self) -> bool:
-        if not self.processing or not self.operations:
+        if not self.operations:
             return True
 
-        return not self._current_operation().to_process
+        return not self._current_operation_is_to_process()
+
+    def _handle_if_operation_finished(self):
+        next_operation_time = self._current_operation_processed_time - self._current_operation().duration
+        if next_operation_time.is_zero or next_operation_time.is_positive:
+            self.operations.pop(0)
+            self._current_operation_processed_time = next_operation_time
 
     def _current_operation(self) -> Optional[SystemOperation]:
         return self.operations[0]
@@ -54,8 +72,27 @@ class Task(TimeAffected):
         current = self._current_operation()
         return current and current.to_process
 
-    def _increment_time(self):
+    def _increment_time_processing(self, delta: TimeDelta):
         if not self.processing and self._current_operation_is_to_process():
             return
+        self._current_operation_processed_time += delta.duration
 
-        self._current_operation_duration.increment()
+    def _increment_time_waiting(self, delta: TimeDelta):
+        if self._current_operation_is_to_process():
+            return
+        self._current_operation_processed_time += delta.duration
+
+    def _should_skip_same_time_delta_update(self, delta: TimeDelta) -> bool:
+        if self._last_time_delta == delta:
+            return True
+        self._last_time_delta = delta
+        return False
+
+    def __str__(self) -> str:
+        return self.name
+
+    def __repr__(self) -> str:
+        return self.name
+
+    def _as_string(self) -> str:
+        return self.name + " " + str(self.operations)

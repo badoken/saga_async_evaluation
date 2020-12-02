@@ -1,59 +1,32 @@
-from copy import copy, deepcopy
-from dataclasses import dataclass
-from enum import Enum
+from copy import deepcopy
 from typing import List
 
-from bin.saga.saga import Saga
-from bin.sys.core import Mode
-from bin.sys.system import System, SystemFactory
-from bin.sys.task import Task
+from bin.saga.simple_saga import SimpleSaga
+from bin.sys.operation_system import OperationSystemFactory, ProcessingMode
+from bin.sys.time import Duration
 
 
 class Orchestrator:
-    def __init__(self, cores_count: int, processing_mode: Mode, system_factory: SystemFactory = SystemFactory()):
+    def __init__(
+            self,
+            cores_count: int,
+            processing_mode: ProcessingMode,
+            system_factory: OperationSystemFactory = OperationSystemFactory()
+    ):
         self._system = system_factory.create(
             cores_count=cores_count,
             processing_mode=processing_mode
         )
 
-    def process(self, sagas: List[Saga]):
-        _sagas = deepcopy(sagas)
-        executions: List[SagaExecution] = []
-        for saga in _sagas:
-            executions.append(SagaExecution(saga, saga.last_incomplete_task()))
+    def process(self, sagas: List[SimpleSaga]) -> Duration:
+        self._system.publish(sagas)
+        result = Duration.zero()
+        tick_length = Duration(micros=1)
 
-        for execution in executions:
-            self._system.publish_task(execution.current_task)
+        while not self._system.work_is_done():
+            print(str(result) + " {")
+            self._system.tick(tick_length)
+            result += tick_length
+            print("}\n")
 
-        while executions:
-            self._system.tick()
-            for execution in executions:
-                result = execution.refresh()
-                if result is RefreshResult.FINISHED:
-                    executions.remove(execution)
-                elif result is RefreshResult.IN_PROGRESS:
-                    continue
-                else:
-                    self._system.publish_task(execution.current_task)
-
-
-class RefreshResult(Enum):
-    FINISHED = 0
-    UPDATED = 1
-    IN_PROGRESS = 2
-
-
-@dataclass
-class SagaExecution:
-    saga: Saga
-    current_task: Task
-
-    def refresh(self) -> RefreshResult:
-        last_incomplete_task = self.saga.last_incomplete_task()
-        if last_incomplete_task is None:
-            return RefreshResult.FINISHED
-        if last_incomplete_task is not self.current_task:
-            self.current_task = last_incomplete_task
-            return RefreshResult.UPDATED
-        if last_incomplete_task is self.current_task:
-            return RefreshResult.IN_PROGRESS
+        return result

@@ -19,13 +19,11 @@ class Task(TimeAffected):
     def __init__(
             self,
             operations: List[SystemOperation],
-            processing: bool = False,
             name: Optional[str] = None
     ):
         if not operations:
             raise ValueError('Task should contain operations')
         self.operations: List[SystemOperation] = operations
-        self.processing: bool = processing
         self.name = name if name else "_❔task❔_"
         self._current_operation_processed_time: Duration = Duration.zero()
         self._last_time_delta: Optional[TimeDelta] = None
@@ -73,7 +71,7 @@ class Task(TimeAffected):
         return current and current.to_process
 
     def _increment_time_processing(self, delta: TimeDelta):
-        if not self.processing and self._current_operation_is_to_process():
+        if not self._current_operation_is_to_process():
             return
         self._current_operation_processed_time += delta.duration
 
@@ -95,4 +93,4 @@ class Task(TimeAffected):
         return self.name
 
     def _as_string(self) -> str:
-        return self.name + " " + str(self.operations)
+        return self.name + "<" + str(self.operations) + ">"

@@ -14,9 +14,6 @@ class TestSimpleSimpleSaga(TestCase):
             create_tickable_task(processing_duration_before_completion=Duration(micros=2))
         ])
 
-        # when
-        saga.set_processing(True)
-
         # then
         self.assertFalse(saga.is_finished())
 
@@ -45,7 +42,6 @@ class TestSimpleSimpleSaga(TestCase):
         # given
         task = create_tickable_task(processing_duration_before_completion=Duration(micros=2))
         saga = SimpleSaga(tasks=[task])
-        saga.set_processing(True)
 
         # when
         saga.ticked(time_delta=TimeDelta(duration=Duration(micros=3)))
@@ -69,7 +65,6 @@ class TestSimpleSimpleSaga(TestCase):
 def create_fixed_task(completed: bool) -> Task:
     task: Task = Mock()
     task.is_complete = lambda: completed
-    task.processing = PropertyMock()
     return task
 
 

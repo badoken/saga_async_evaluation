@@ -13,10 +13,6 @@ class TestCore(TestCase):
         thread = create_thread(ticks=2)
         core = Core(processing_interval=Duration(20))
 
-        mock_manager = Mock()
-        mock_manager.attach_mock(thread.set_processing, "set_processing")
-        mock_manager.attach_mock(thread.ticked, "ticked")
-
         # when
         core.assign(thread)
         core.ticked(time_delta=TimeDelta(Duration(micros=1)))
@@ -24,12 +20,10 @@ class TestCore(TestCase):
         core.ticked(time_delta=TimeDelta(Duration(micros=1)))
 
         # then
-        mock_manager.assert_has_calls(
+        thread.ticked.assert_has_calls(
             calls=[
-                call.set_processing(True),
                 call.ticked(TimeDelta(duration=Duration(micros=1), identifier=ANY)),
-                call.ticked(TimeDelta(duration=Duration(micros=1), identifier=ANY)),
-                call.set_processing(False)
+                call.ticked(TimeDelta(duration=Duration(micros=1), identifier=ANY))
             ]
         )
 

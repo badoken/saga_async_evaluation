@@ -48,9 +48,13 @@ class OperationSystem:
         for thread in self._published:
             current_task = thread.get_current_task()
             if current_task is not None and current_task.is_waiting():
-                print("Triggering wait on task " + str(current_task.name) + ". Before: " + str(current_task._current_operation_processed_time) + " is processing " + str(current_task.processing))
+                print("Triggering wait on task " + str(current_task.name) +
+                      ". Before: " + str(current_task._current_operation_processed_time))
+
                 current_task.wait(time_delta=delta)
-                print("Triggering wait on task " + str(current_task.name) + ". After: " + str(current_task._current_operation_processed_time) + " is processing " + str(current_task.processing))
+
+                print("Triggering wait on task " + str(current_task.name) +
+                      ". After: " + str(current_task._current_operation_processed_time))
 
     def _feed_starving_cores(self):
         if not len(self._to_process_threads_queue):

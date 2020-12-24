@@ -21,18 +21,15 @@ class SimpleSaga(SysThread):
         if current_task.is_waiting():
             return
 
-        current_task.processing = self._processing
-        print("🚀Saga " + str(self._name) + " triggering " + str(current_task.name) + ". Before: " + str(current_task._current_operation_processed_time) + " is processing " + str(current_task.processing))
+        print("🚀Saga " + str(self._name) + " triggering " + str(current_task.name) +
+              ". Before: " + str(current_task._current_operation_processed_time))
         current_task.ticked(time_delta)
-        print("🚀Saga " + str(self._name) + " triggered " + str(current_task.name) + ". After: " + str(current_task._current_operation_processed_time) + " is processing " + str(current_task.processing))
+        print("🚀Saga " + str(self._name) + " triggered " + str(current_task.name) +
+              ". After: " + str(current_task._current_operation_processed_time))
         if not current_task.is_complete():
             return
 
-        current_task.processing = False
         self._tasks.pop(0)
-
-    def set_processing(self, is_processing: bool):
-        self._processing = is_processing
 
     def get_current_task(self) -> Optional[Task]:
         return next(iter(self._tasks), None)
@@ -44,4 +41,4 @@ class SimpleSaga(SysThread):
         return self._name
 
     def _as_str(self):
-        return self._name + " " + str(self._tasks)
+        return self._name + "<" + str(self._tasks) + ">"

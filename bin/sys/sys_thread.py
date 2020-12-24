@@ -10,7 +10,4 @@ class SysThread(TimeAffected):
     def is_finished(self) -> bool: pass
 
     @abstractmethod
-    def set_processing(self, is_processing: bool): pass
-
-    @abstractmethod
     def get_current_task(self) -> Optional[Task]: pass

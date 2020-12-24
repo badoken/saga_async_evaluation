@@ -58,7 +58,6 @@ class Core(TimeAffected):
         if not self._threads_pool:
             return
         self._processing_slot = self._threads_pool.pop(0)
-        self._processing_slot.set_processing(True)
 
     def _reset_counters(self):
         self._context_switch_duration = Duration.zero()
@@ -78,7 +77,6 @@ class Core(TimeAffected):
         self._reset_counters()
         unassigned: SysThread = self._processing_slot
         self._processing_slot = None
-        unassigned.set_processing(False)
         return unassigned
 
 

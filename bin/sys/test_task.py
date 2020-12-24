@@ -42,12 +42,6 @@ class TestTask(TestCase):
         # then
         self.assertFalse(task.is_complete())
 
-        task.ticked(time_delta=TimeDelta(Duration(micros=1)))
-        self.assertFalse(task.is_complete())
-        task.ticked(time_delta=TimeDelta(Duration(micros=1)))
-        self.assertFalse(task.is_complete())
-        task.processing = True
-
         # 1
         task.ticked(time_delta=TimeDelta(Duration(micros=1)))
         self.assertFalse(task.is_complete())
@@ -65,7 +59,6 @@ class TestTask(TestCase):
         task = Task(operations=[operation])
 
         # when
-        task.processing = True
         task.ticked(time_delta=TimeDelta(Duration(micros=2)))
 
         # then
@@ -75,7 +68,6 @@ class TestTask(TestCase):
         # given
         operation = SystemOperation(to_process=False, name="not to process", duration=Duration(micros=1))
         task = Task(operations=[operation])
-        task.processing = True
 
         # when
         try:
@@ -90,7 +82,6 @@ class TestTask(TestCase):
         # given
         operation = SystemOperation(to_process=True, name="not to process", duration=Duration(micros=1))
         task = Task(operations=[operation])
-        task.processing = True
 
         # when
         try:
@@ -108,7 +99,6 @@ class TestTask(TestCase):
         task = Task(operations=[operation])
 
         # then
-        task.processing = True
         self.assertTrue(task.is_waiting())
 
     def test_is_waiting_with_long_tick(self):
@@ -119,7 +109,6 @@ class TestTask(TestCase):
         ])
 
         # when
-        task.processing = True
         task.ticked(time_delta=TimeDelta(Duration(micros=3)))
 
         # then
@@ -132,9 +121,6 @@ class TestTask(TestCase):
             SystemOperation(to_process=False, name="2: waiting", duration=Duration(micros=2))
         ])
         delta_id = uuid4()
-
-        # when
-        task.processing = True
 
         # then
         # 1
@@ -157,9 +143,6 @@ class TestTask(TestCase):
             SystemOperation(to_process=True, name="2: processing", duration=Duration(micros=2))
         ])
         delta_id = uuid4()
-
-        # when
-        task.processing = True
 
         # then
         # 1
@@ -188,7 +171,6 @@ class TestTask(TestCase):
         ])
 
         # then
-        task.processing = True
         self.assertFalse(task.is_waiting())
 
         # 1
@@ -201,28 +183,9 @@ class TestTask(TestCase):
         task.wait(time_delta=TimeDelta(Duration(micros=1)))
         self.assertFalse(task.is_waiting())
 
-        task.processing = False
-
-        task.ticked(time_delta=TimeDelta(Duration(micros=1)))
-        self.assertFalse(task.is_waiting())
-        task.ticked(time_delta=TimeDelta(Duration(micros=1)))
-        self.assertFalse(task.is_waiting())
-        task.ticked(time_delta=TimeDelta(Duration(micros=1)))
-        self.assertFalse(task.is_waiting())
-
         # 3
-        task.processing = True
-
         task.ticked(time_delta=TimeDelta(Duration(micros=1)))
         self.assertFalse(task.is_waiting())
-
-        task.processing = False
-
-        task.ticked(time_delta=TimeDelta(Duration(micros=1)))
-        self.assertFalse(task.is_waiting())
-
-        task.processing = True
-
         task.ticked(time_delta=TimeDelta(Duration(micros=1)))
         self.assertFalse(task.is_waiting())
 

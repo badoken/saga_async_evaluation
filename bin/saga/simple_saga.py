@@ -15,7 +15,7 @@ class SimpleSaga(SysThread):
         return len(self._tasks) == 0
 
     def ticked(self, time_delta: TimeDelta):
-        current_task = self.get_current_task()
+        current_task = self._get_current_task()
         if not current_task:
             return
         if current_task.is_waiting():
@@ -31,7 +31,11 @@ class SimpleSaga(SysThread):
 
         self._tasks.pop(0)
 
-    def get_current_task(self) -> Optional[Task]:
+    def get_current_tasks(self) -> List[Task]:
+        current_task = self._get_current_task()
+        return [current_task] if current_task else []
+
+    def _get_current_task(self) -> Optional[Task]:
         return next(iter(self._tasks), None)
 
     def __str__(self) -> str:

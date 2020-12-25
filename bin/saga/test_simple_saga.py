@@ -26,29 +26,29 @@ class TestSimpleSimpleSaga(TestCase):
         saga.ticked(time_delta=TimeDelta(duration=Duration(micros=4)))
         self.assertTrue(saga.is_finished())
 
-    def test_get_current_task_should_provide_first_task_if_present(self):
+    def test_get_current_tasks_should_provide_first_task_if_present(self):
         # given
         task1 = create_tickable_task(processing_duration_before_completion=Duration(micros=3))
         task2 = create_tickable_task(processing_duration_before_completion=Duration(micros=2))
         saga = SimpleSaga(tasks=[task1, task2])
 
         # when
-        result = saga.get_current_task()
+        result = saga.get_current_tasks()
 
         # then
-        self.assertEqual(task1, result)
+        self.assertEqual([task1], result)
 
-    def test_get_current_task_should_return_none_if_no_current_task_present(self):
+    def test_get_current_tasks_should_return_none_if_no_current_task_present(self):
         # given
         task = create_tickable_task(processing_duration_before_completion=Duration(micros=2))
         saga = SimpleSaga(tasks=[task])
 
         # when
         saga.ticked(time_delta=TimeDelta(duration=Duration(micros=3)))
-        result = saga.get_current_task()
+        result = saga.get_current_tasks()
 
         # then
-        self.assertIsNone(result)
+        self.assertEqual(0, len(result))
 
     def test_tick_should_tick_task_only_if_not_waiting(self):
         # given

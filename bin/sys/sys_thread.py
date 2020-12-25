@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Optional
+from typing import Optional, List
 
 from bin.sys.task import Task
 from bin.sys.time import TimeAffected
@@ -10,4 +10,4 @@ class SysThread(TimeAffected):
     def is_finished(self) -> bool: pass
 
     @abstractmethod
-    def get_current_task(self) -> Optional[Task]: pass
+    def get_current_tasks(self) -> List[Task]: pass

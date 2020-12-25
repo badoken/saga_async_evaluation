@@ -46,8 +46,10 @@ class OperationSystem:
             print("Triggering core " + str(core))
             core.ticked(time_delta=delta)
         for thread in self._published:
-            current_task = thread.get_current_task()
-            if current_task is not None and current_task.is_waiting():
+            for current_task in thread.get_current_tasks():
+                if not current_task.is_waiting():
+                    continue
+
                 print("Triggering wait on task " + str(current_task.name) +
                       ". Before: " + str(current_task._current_operation_processed_time))
 

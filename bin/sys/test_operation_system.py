@@ -49,8 +49,8 @@ class TestOperationSystem(TestCase):
         task.is_waiting = lambda: True
         task.wait = Mock()
 
-        thread, = sys_threads(1)
-        thread.get_current_task = lambda: task
+        thread = sys_thread()
+        thread.get_current_tasks = lambda: [task]
 
         system.publish([thread])
 
@@ -176,7 +176,13 @@ def core_mock(factory: CoreFactory) -> Core:
 
 
 def sys_threads(count: int) -> List[SysThread]:
-    return [Mock(name="thread " + str(i)) for i in range(count)]
+    return [sys_thread(name="thread " + str(i)) for i in range(count)]
+
+
+def sys_thread(name: str = "thread") -> SysThread:
+    thread: SysThread = Mock(name=name)
+    thread.get_current_tasks = lambda: []
+    return thread
 
 
 def reset_core_mock(core: Core):

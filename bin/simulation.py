@@ -1,4 +1,7 @@
-from bin.saga.orchestration import Orchestrator
+from copy import deepcopy
+
+from bin.saga.coroutines_orchestrator import CoroutinesOrchestrator
+from bin.saga.threaded_orchestrator import ThreadedOrchestrator
 from bin.saga.simple_saga import SimpleSaga
 from bin.sys.operation_system import ProcessingMode
 from bin.sys.task import Task, SystemOperation
@@ -57,6 +60,18 @@ sagas = [
     ),
 ]
 
-orchestrator = Orchestrator(cores_count=2, processing_mode=ProcessingMode.OVERLOADED_CORES)
+overloaded_threads_orchestrator = ThreadedOrchestrator(cores_count=2, processing_mode=ProcessingMode.OVERLOADED_CORES)
+fixed_pool_threads_orchestrator = ThreadedOrchestrator(cores_count=2, processing_mode=ProcessingMode.FIXED_POOL_SIZE)
+coroutines_orchestrator = CoroutinesOrchestrator(cores_count=2)
 
-print("Orchestration is complete in " + str(orchestrator.process(sagas)))
+print("HERE!!!:::Overloaded threads orchestration is complete in " +
+      str(overloaded_threads_orchestrator.process(deepcopy(sagas))) +
+      "\n\n\n")
+
+print("HERE!!!:::Fixed pool threads orchestration is complete in " +
+      str(fixed_pool_threads_orchestrator.process(deepcopy(sagas))) +
+      "\n\n\n")
+
+print("HERE!!!:::Coroutines orchestration is complete in " +
+      str(coroutines_orchestrator.process(deepcopy(sagas))) +
+      "\n\n\n")

@@ -6,7 +6,7 @@ from bin.sys.operation_system import OperationSystemFactory, ProcessingMode
 from bin.sys.time import Duration
 
 
-class Orchestrator:
+class ThreadedOrchestrator:
     def __init__(
             self,
             cores_count: int,

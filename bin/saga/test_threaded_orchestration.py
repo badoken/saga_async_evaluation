@@ -2,21 +2,21 @@ from typing import Tuple
 from unittest import TestCase
 from unittest.mock import Mock, call
 
-from bin.saga.orchestration import Orchestrator
+from bin.saga.threaded_orchestrator import ThreadedOrchestrator
 from bin.saga.simple_saga import SimpleSaga
 from bin.sys.operation_system import OperationSystemFactory, OperationSystem, ProcessingMode
 from bin.sys.task import Task, SystemOperation
 from bin.sys.time import Duration
 
 
-class TestOrchestrator(TestCase):
+class TestThreadedOrchestrator(TestCase):
     def test_process(self):
         # given
         cores_factory, system = given_system_factory_that_produces_mock(
             expected_cores=2,
             expected_mode=ProcessingMode.OVERLOADED_CORES
         )
-        orchestrator = Orchestrator(
+        orchestrator = ThreadedOrchestrator(
             cores_count=2,
             processing_mode=ProcessingMode.OVERLOADED_CORES,
             system_factory=cores_factory
@@ -24,7 +24,7 @@ class TestOrchestrator(TestCase):
 
         work_is_done_answers = [False for _ in range(3)]
         system.tick = Mock(side_effect=lambda duration: work_is_done_answers.pop(0))
-        system.publish_task = Mock()
+        system.publish = Mock()
 
         saga: SimpleSaga = Mock()
         system.work_is_done = lambda: next(iter(work_is_done_answers), True)
@@ -33,7 +33,7 @@ class TestOrchestrator(TestCase):
         orchestrator.process(sagas=[saga])
 
         # then
-        system.publish_task([saga])
+        system.publish.assert_called_once_with([saga])
         system.tick.assert_has_calls(
             calls=[
                 call.tick(Duration(micros=1)),

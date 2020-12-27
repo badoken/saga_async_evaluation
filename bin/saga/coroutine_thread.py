@@ -61,3 +61,15 @@ class CoroutineThread(SysThread):
 
     def _as_str(self):
         return self._name + "<" + str(self._threads) + ">"
+
+
+class CoroutineThreadFactory:
+    def __init__(self):
+        self.last_id = -1
+
+    def new(
+            self,
+            threads: List[SysThread]
+    ) -> CoroutineThread:
+        self.last_id += 1
+        return CoroutineThread(threads=threads, name="coroutine" + str(self.last_id))

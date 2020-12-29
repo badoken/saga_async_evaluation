@@ -1,2 +1,3 @@
 parameterized==0.7.4
-mock==4.0.2
+mock==4.0.3
+XlsxWriter==1.3.7

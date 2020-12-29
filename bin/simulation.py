@@ -1,11 +1,12 @@
 from copy import deepcopy
+from pathlib import Path
 
 from bin.saga.coroutines_orchestrator import CoroutinesOrchestrator
 from bin.saga.threaded_orchestrator import ThreadedOrchestrator
 from bin.saga.simple_saga import SimpleSaga
 from bin.sys.operation_system import ProcessingMode
 from bin.sys.task import Task, SystemOperation
-from bin.sys.time import Duration
+from bin.sys.time import Duration, LogContext
 
 tuff_task = Task(
     operations=[
@@ -64,14 +65,17 @@ overloaded_threads_orchestrator = ThreadedOrchestrator(cores_count=2, processing
 fixed_pool_threads_orchestrator = ThreadedOrchestrator(cores_count=2, processing_mode=ProcessingMode.FIXED_POOL_SIZE)
 coroutines_orchestrator = CoroutinesOrchestrator(cores_count=2)
 
-print("HERE!!!:::Overloaded threads orchestration is complete in " +
-      str(overloaded_threads_orchestrator.process(deepcopy(sagas))) +
-      "\n\n\n")
+LogContext.run_logging(
+    log_name="Overloaded",
+    action=lambda: overloaded_threads_orchestrator.process(deepcopy(sagas))
+)
 
-print("HERE!!!:::Fixed pool threads orchestration is complete in " +
-      str(fixed_pool_threads_orchestrator.process(deepcopy(sagas))) +
-      "\n\n\n")
+LogContext.run_logging(
+    log_name="Fixed pool",
+    action=lambda: fixed_pool_threads_orchestrator.process(deepcopy(sagas))
+)
 
-print("HERE!!!:::Coroutines orchestration is complete in " +
-      str(coroutines_orchestrator.process(deepcopy(sagas))) +
-      "\n\n\n")
+LogContext.run_logging(
+    log_name="Coroutines",
+    action=lambda: coroutines_orchestrator.process(deepcopy(sagas))
+)

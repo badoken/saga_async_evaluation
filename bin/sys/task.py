@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-from bin.sys.time import TimeAffected, Duration, TimeDelta
+from bin.sys.time import TimeAffected, Duration, TimeDelta, LogContext
 
 
 @dataclass
@@ -35,6 +35,8 @@ class Task(TimeAffected):
             raise ValueError(str(self) + " is waiting but ticked with " + str(time_delta))
         if self._should_skip_same_time_delta_update(time_delta):
             return
+
+        LogContext.logger().log_task_processing(time_delta=time_delta, name=self.name)
         self._increment_time_processing(time_delta)
         self._handle_if_operation_finished()
 
@@ -45,6 +47,8 @@ class Task(TimeAffected):
             raise ValueError(str(self) + " is processing but triggered to wait " + str(time_delta))
         if self._should_skip_same_time_delta_update(time_delta):
             return
+
+        LogContext.logger().log_task_waiting(time_delta=time_delta, name=self.name)
         self._increment_time_waiting(time_delta)
         self._handle_if_operation_finished()
 

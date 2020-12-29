@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from bin.sys.sys_thread import SysThread
-from bin.sys.time import TimeAffected, Duration, TimeDelta
+from bin.sys.time import TimeAffected, Duration, TimeDelta, LogContext
 
 
 class Core(TimeAffected):
@@ -19,6 +19,7 @@ class Core(TimeAffected):
         self._assign_first_from_pool_if_starving()
 
     def ticked(self, time_delta: TimeDelta):
+        LogContext.logger().log_core_tick(time_delta=time_delta, identifier=self.identifier)
         self._assign_first_from_pool_if_starving()
 
         if self._processing_slot is None:

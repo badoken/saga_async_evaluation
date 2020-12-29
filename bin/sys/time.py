@@ -1,6 +1,11 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from uuid import UUID, uuid5, uuid4
+from enum import Enum
+from pathlib import Path
+from typing import Callable, Optional, Any
+from uuid import UUID, uuid4
+
+import xlsxwriter
 
 
 class Duration:
@@ -122,3 +127,52 @@ class Constants:
     @staticmethod
     def core() -> Duration:
         pass  # TODO
+
+
+class TimeLogger:
+    def __init__(self, name: str):
+        self._workbook = xlsxwriter.Workbook(filename=name + '.xlsx')
+        self._sheet = self._workbook.add_worksheet(name=name)
+        self._sheet.write(0, 0, "An operation name")
+        self._sheet.write(0, 2, "A core operation duration")
+        self._sheet.write(0, 3, "A task processing duration")
+        self._sheet.write(0, 4, "A task wait duration")
+        self._row = 1
+
+    def close(self):
+        self._workbook.close()
+
+    def log_core_tick(self, time_delta: TimeDelta, identifier: int):
+        row = self._get_row_and_increment()
+        self._sheet.write(row, 0, 'core' + str(identifier))
+        self._sheet.write(row, 2, str(time_delta.duration.micros))
+
+    def log_task_processing(self, time_delta: TimeDelta, name: str):
+        row = self._get_row_and_increment()
+        self._sheet.write(row, 0, name)
+        self._sheet.write(row, 3, str(time_delta.duration.micros))
+
+    def log_task_waiting(self, time_delta: TimeDelta, name: str):
+        row = self._get_row_and_increment()
+        self._sheet.write(row, 0, name)
+        self._sheet.write(row, 4, str(time_delta.duration.micros))
+
+    def _get_row_and_increment(self) -> int:
+        result = self._row
+        self._row = result + 1
+        return result
+
+
+class LogContext:
+    _logger: Optional[TimeLogger] = None
+
+    @staticmethod
+    def run_logging(log_name: str, action: Callable[[], Any]):
+        LogContext._logger = TimeLogger(name=log_name)
+        action()
+        LogContext._logger.close()
+        LogContext._logger = None
+
+    @staticmethod
+    def logger() -> Optional[TimeLogger]:
+        return LogContext._logger

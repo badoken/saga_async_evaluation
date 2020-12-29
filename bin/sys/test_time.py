@@ -1,6 +1,8 @@
+from typing import Type
 from unittest import TestCase
+from unittest.mock import patch, Mock
 
-from bin.sys.time import Duration, TimeDelta
+from bin.sys.time import Duration, TimeDelta, TimeLogger, LogContext
 
 
 class TestDuration(TestCase):
@@ -80,3 +82,37 @@ class TestTimeDelta(TestCase):
 
         # then
         self.assertNotEqual(first_id, second_id)
+
+
+class TestLogContext(TestCase):
+    @patch("bin.sys.time.TimeLogger")
+    def test_run_logging_should_provide_current_logger(self, time_logger_class):
+        # given
+        delta = TimeDelta(duration=Duration(seconds=2))
+        logger: Mock[TimeLogger] = Mock()
+        time_logger_class.return_value = logger
+
+        # when
+        LogContext.run_logging(
+            log_name="test",
+            action=lambda: LogContext.logger().log_core_tick(time_delta=delta, identifier=2)
+        )
+
+        # then
+        logger.log_core_tick.assert_called_with(time_delta=delta, identifier=2)
+        logger.close.assert_called_once()
+
+    @patch("bin.sys.time.TimeLogger")
+    def test_logger_is_inaccessible_outside_of_context(self, time_logger_class):
+        # given
+        logger: Mock[TimeLogger] = Mock()
+        time_logger_class.return_value = logger
+
+        # when
+        actual_logger = LogContext.logger()
+
+        # then
+        self.assertIsNone(actual_logger)
+
+        logger.assert_not_called()
+        logger.close.assert_not_called()

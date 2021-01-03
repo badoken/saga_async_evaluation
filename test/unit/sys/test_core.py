@@ -10,6 +10,13 @@ from src.sys.time.duration import Duration
 
 
 class TestCore(TestCase):
+
+    log_context_logger = LogContext.logger
+
+    @classmethod
+    def tearDownClass(cls):
+        LogContext.logger = cls.log_context_logger
+
     def test_ticked_should_tick_one_thread_till_its_finished(self):
         # given
         logger = given_logging_context_that_provides_logger()

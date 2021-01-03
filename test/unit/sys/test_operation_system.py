@@ -14,6 +14,13 @@ from src.sys.time.duration import Duration
 
 
 class TestOperationSystem(TestCase):
+
+    log_context_shift_time = LogContext.shift_time
+
+    @classmethod
+    def tearDownClass(cls):
+        LogContext.shift_time = cls.log_context_shift_time
+
     @patch("src.sys.operation_system.LogContext")
     def test_should_publish_all_tasks_to_core_if_in_overloaded_mode(self, log_context_class):
         # given

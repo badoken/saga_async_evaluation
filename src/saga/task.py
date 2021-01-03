@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from typing import List, Optional
 from uuid import uuid4
 
-from bin.sys.time.time import TimeAffected, TimeDelta
-from bin.log.log import LogContext
-from bin.sys.time.duration import Duration
+from src.sys.time.time import TimeAffected, TimeDelta
+from src.log import LogContext
+from src.sys.time.duration import Duration
 
 
 @dataclass
@@ -30,7 +30,7 @@ class Task(TimeAffected):
         self.name = name if name else "_❔task❔_"
         self._current_operation_processed_time: Duration = Duration.zero()
         self._last_time_delta: Optional[TimeDelta] = None
-        self._identifier = uuid4()
+        self.identifier = uuid4()
 
     def ticked(self, time_delta: TimeDelta):
         if self.is_complete():
@@ -40,7 +40,7 @@ class Task(TimeAffected):
         if self._should_skip_same_time_delta_update(time_delta):
             return
 
-        LogContext.logger().log_task_processing(name=self.name, identifier=self._identifier)
+        LogContext.logger().log_task_processing(name=self.name, identifier=self.identifier)
         self._increment_time_processing(time_delta)
         self._handle_if_operation_finished()
 
@@ -52,7 +52,7 @@ class Task(TimeAffected):
         if self._should_skip_same_time_delta_update(time_delta):
             return
 
-        LogContext.logger().log_task_waiting(name=self.name, identifier=self._identifier)
+        LogContext.logger().log_task_waiting(name=self.name, identifier=self.identifier)
         self._increment_time_waiting(time_delta)
         self._handle_if_operation_finished()
 
@@ -101,4 +101,4 @@ class Task(TimeAffected):
         return self.name
 
     def _as_string(self) -> str:
-        return self.name + "[" + str(self._identifier) + "]<" + str(self.operations) + ">"
+        return self.name + "[" + str(self.identifier) + "]<" + str(self.operations) + ">"

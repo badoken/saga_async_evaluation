@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
-from bin.sys.time.duration import Duration
+from src.sys.time.duration import Duration
 
 
 @dataclass

@@ -1,11 +1,11 @@
 from typing import List, Optional
 
-from bin.sys.sys_thread import SysThread
-from bin.saga.task.task import Task
-from bin.sys.time.time import TimeDelta
+from src.sys.thread import Thread
+from src.saga.task import Task
+from src.sys.time.time import TimeDelta
 
 
-class SimpleSaga(SysThread):
+class SimpleSaga(Thread):
     def __init__(self, tasks: List[Task], name: str = "unnamed"):
         self._tasks: List[Task] = tasks
         self._processing: bool = False

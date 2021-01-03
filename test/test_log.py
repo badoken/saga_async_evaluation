@@ -5,13 +5,13 @@ from uuid import uuid4
 from xlsxwriter import Workbook
 from xlsxwriter.worksheet import Worksheet
 
-from bin.log.log import TimeLogger, LogContext
-from bin.sys.time.duration import Duration
-from bin.sys.time.time import TimeDelta
+from src.log import TimeLogger, LogContext
+from src.sys.time.duration import Duration
+from src.sys.time.time import TimeDelta
 
 
 class TestLogContext(TestCase):
-    @patch("bin.log.log.TimeLogger")
+    @patch("src.log.TimeLogger")
     def test_run_logging_should_provide_current_logger(self, time_logger_class):
         # given
         delta = TimeDelta(duration=Duration(seconds=2))
@@ -28,7 +28,7 @@ class TestLogContext(TestCase):
         logger.log_core_tick.assert_called_with(identifier=2)
         logger.close.assert_called_once()
 
-    @patch("bin.log.log.TimeLogger")
+    @patch("src.log.TimeLogger")
     def test_logger_is_inaccessible_outside_of_context(self, time_logger_class):
         # given
         logger: Mock[TimeLogger] = Mock()
@@ -43,7 +43,7 @@ class TestLogContext(TestCase):
         logger.assert_not_called()
         logger.close.assert_not_called()
 
-    @patch("bin.log.log.TimeLogger")
+    @patch("src.log.TimeLogger")
     def test_shift_time_should_shift_time_of_logger(self, time_logger_class):
         # given
         logger: Mock[TimeLogger] = Mock()
@@ -60,7 +60,7 @@ class TestLogContext(TestCase):
 
 
 class TestTimeLogger(TestCase):
-    @patch("bin.log.log.Workbook")
+    @patch("src.log.Workbook")
     def test_log_core_should_write_each_core_in_a_separate_column(self, workbook_class):
         # given
         sheet_name = "test_name"
@@ -95,7 +95,7 @@ class TestTimeLogger(TestCase):
 
         workbook.close.assert_called_once()
 
-    @patch("bin.log.log.Workbook")
+    @patch("src.log.Workbook")
     def test_log_task_should_write_each_task_in_a_separate_column(self, workbook_class):
         # given
         first_task_id = uuid4()
@@ -133,7 +133,7 @@ class TestTimeLogger(TestCase):
 
         workbook.close.assert_called_once()
 
-    @patch("bin.log.log.Workbook")
+    @patch("src.log.Workbook")
     def test_log_task_should_not_write_same_core_two_times(self, workbook_class):
         # given
         task_id = uuid4()

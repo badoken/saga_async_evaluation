@@ -1,11 +1,11 @@
 from abc import abstractmethod
 from typing import List
 
-from bin.saga.task.task import Task
-from bin.sys.time.time import TimeAffected
+from src.saga.task import Task
+from src.sys.time.time import TimeAffected
 
 
-class SysThread(TimeAffected):
+class Thread(TimeAffected):
     @abstractmethod
     def is_finished(self) -> bool: pass
 

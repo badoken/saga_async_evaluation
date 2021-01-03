@@ -1,9 +1,9 @@
 from typing import List, Optional
 
-from bin.sys.sys_thread import SysThread
-from bin.sys.time.time import TimeAffected, TimeDelta
-from bin.log.log import LogContext
-from bin.sys.time.duration import Duration
+from src.sys.thread import Thread
+from src.sys.time.time import TimeAffected, TimeDelta
+from src.log import LogContext
+from src.sys.time.duration import Duration
 
 
 class Core(TimeAffected):
@@ -11,12 +11,12 @@ class Core(TimeAffected):
         self.processing_interval = processing_interval
         self.identifier = identifier
         self._context_switch_cost = Duration(micros=2)  # TODO: constants or to thread
-        self._threads_pool: List[SysThread] = []
-        self._processing_slot: Optional[SysThread] = None
+        self._threads_pool: List[Thread] = []
+        self._processing_slot: Optional[Thread] = None
         self._current_thread_processing_duration: Duration = Duration.zero()
         self._context_switch_duration: Duration = Duration.zero()
 
-    def assign(self, thread: SysThread):
+    def assign(self, thread: Thread):
         self._threads_pool.append(thread)
         self._assign_first_from_pool_if_starving()
 
@@ -74,11 +74,11 @@ class Core(TimeAffected):
         self._unassign_current()
         self._assign_first_from_pool_if_starving()
 
-    def _unassign_current(self) -> Optional[SysThread]:
+    def _unassign_current(self) -> Optional[Thread]:
         if self._processing_slot is None:
             return None
         self._reset_counters()
-        unassigned: SysThread = self._processing_slot
+        unassigned: Thread = self._processing_slot
         self._processing_slot = None
         return unassigned
 

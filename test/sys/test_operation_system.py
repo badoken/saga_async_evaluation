@@ -4,18 +4,21 @@ from unittest.mock import Mock, call, ANY, patch
 
 from unittest import TestCase
 
-from bin.sys.core.core import Core, CoreFactory
-from bin.sys.operation_system import OperationSystem, ProcessingMode
-from bin.sys.sys_thread import SysThread
-from bin.saga.task.task import Task
-from bin.sys.time.time import TimeDelta
-from bin.sys.time.duration import Duration
+from src.log import LogContext
+from src.sys.core import Core, CoreFactory
+from src.sys.operation_system import OperationSystem, ProcessingMode
+from src.sys.thread import Thread
+from src.saga.task import Task
+from src.sys.time.time import TimeDelta
+from src.sys.time.duration import Duration
 
 
 class TestOperationSystem(TestCase):
-    @patch("bin.sys.operation_system.LogContext")
+    @patch("src.sys.operation_system.LogContext")
     def test_should_publish_all_tasks_to_core_if_in_overloaded_mode(self, log_context_class):
         # given
+        shift_time_method = log_context_class.shift_time
+
         factory = core_factory()
         core1 = core_mock(factory)
         core2 = core_mock(factory)
@@ -41,9 +44,12 @@ class TestOperationSystem(TestCase):
             call(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY))
         ])
         log_context_class.shift_time.assert_has_calls([call(), call()])
+        shift_time_method.assert_has_calls([call(), call()])
 
     def test_should_tick_cores_and_trigger_waiting_tasks(self):
         # given
+        shift_time_method = given_shift_time_is_a_mock()
+
         factory = core_factory()
         core = core_mock(factory)
         system = OperationSystem(cores_count=1, processing_mode=ProcessingMode.OVERLOADED_CORES, core_factory=factory)
@@ -83,8 +89,12 @@ class TestOperationSystem(TestCase):
         self.assertEqual(ticked_first_call_arg.duration, ticked_second_call_arg.duration)
         self.assertNotEqual(ticked_first_call_arg.identifier, ticked_second_call_arg.identifier)
 
+        shift_time_method.assert_has_calls([call(), call()])
+
     def test_should_publish_all_tasks_to_core_if_in_fixed_pool_mode(self):
         # given
+        shift_time_method = given_shift_time_is_a_mock()
+
         factory = core_factory()
         core1 = core_mock(factory)
         core2 = core_mock(factory)
@@ -116,6 +126,8 @@ class TestOperationSystem(TestCase):
         core2.assign.assert_called_once_with(thread4)
         core2.ticked.assert_called_once_with(time_delta=TimeDelta(Duration(micros=1), identifier=ANY))
         core2.ticked.assert_called_once_with(time_delta=TimeDelta(Duration(micros=1), identifier=ANY))
+
+        shift_time_method.assert_has_calls([call(), call()])
 
     def test_work_is_done_should_return_false_if_cores_are_not_starving(self):
         # given
@@ -178,12 +190,12 @@ def core_mock(factory: CoreFactory) -> Core:
     return core1
 
 
-def sys_threads(count: int) -> List[SysThread]:
+def sys_threads(count: int) -> List[Thread]:
     return [sys_thread(name="thread " + str(i)) for i in range(count)]
 
 
-def sys_thread(name: str = "thread") -> SysThread:
-    thread: SysThread = Mock(name=name)
+def sys_thread(name: str = "thread") -> Thread:
+    thread: Thread = Mock(name=name)
     thread.get_current_tasks = lambda: []
     return thread
 
@@ -191,3 +203,9 @@ def sys_thread(name: str = "thread") -> SysThread:
 def reset_core_mock(core: Core):
     core.assign.reset_mock()
     core.ticked.reset_mock()
+
+
+def given_shift_time_is_a_mock() -> Mock:
+    shift_time_method: Mock = Mock()
+    LogContext.shift_time = shift_time_method
+    return shift_time_method

@@ -1,10 +1,11 @@
+from typing import List
 from unittest import TestCase
 from unittest.mock import Mock
 
-from bin.saga.simple_saga import SimpleSaga
-from bin.saga.task.task import Task, SystemOperation
-from bin.sys.time.time import TimeDelta
-from bin.sys.time.duration import Duration
+from src.saga.simple_saga import SimpleSaga
+from src.saga.task import Task
+from src.sys.time.duration import Duration
+from src.sys.time.time import TimeDelta
 
 
 class TestSimpleSimpleSaga(TestCase):
@@ -70,12 +71,36 @@ def create_fixed_task(completed: bool) -> Task:
 
 
 def create_tickable_task(processing_duration_before_completion: Duration, to_process: bool = True) -> Task:
-    task = Task(operations=[
-        SystemOperation(
-            to_process=to_process,
-            name="task " + str(processing_duration_before_completion),
-            duration=processing_duration_before_completion)
-    ])
+    task = Mock()
+    is_finished_answered = [False for _ in range(processing_duration_before_completion.micros)]
+
+    if to_process:
+        task.wait = raise_error
+        task.ticked = lambda time_delta: remove_times(elements=is_finished_answered, time_delta=time_delta)
+        task.is_waiting = lambda: False
+        task.is_complete = lambda: next(iter(is_finished_answered), True)
+    else:
+        task.ticked = raise_error
+        task.wait = lambda time_delta: remove_times(elements=is_finished_answered, time_delta=time_delta)
+        task.is_waiting = lambda: True
+        task.is_complete = lambda: next(iter(is_finished_answered), True)
 
     task.ticked = Mock(wraps=task.ticked)
     return task
+
+
+# noinspection PyUnusedLocal
+def raise_error(time_delta: TimeDelta):
+    raise Exception("Should not be called")
+
+
+def remove_times(elements: List[bool], time_delta: TimeDelta):
+    times = time_delta.duration.micros
+    if len(elements) < times:
+        elements.clear()
+        return
+    [
+        elements.pop()
+        for _
+        in range(times)
+    ]

@@ -1,11 +1,11 @@
 from enum import Enum
 from typing import List
 
-from bin.sys.core.core import CoreFactory
-from bin.sys.sys_thread import SysThread
-from bin.sys.time.time import TimeDelta
-from bin.log.log import LogContext
-from bin.sys.time.duration import Duration
+from src.sys.core import CoreFactory
+from src.sys.thread import Thread
+from src.sys.time.time import TimeDelta
+from src.log import LogContext
+from src.sys.time.duration import Duration
 
 
 class ProcessingMode(Enum):
@@ -21,11 +21,11 @@ class OperationSystem:
             core_factory: CoreFactory = CoreFactory()
     ):
         self.processing_mode = processing_mode
-        self._to_process_threads_queue: List[SysThread] = []
+        self._to_process_threads_queue: List[Thread] = []
         self._cores = core_factory.new(count=cores_count, processing_interval=Duration(micros=60))
-        self._published: List[SysThread] = []
+        self._published: List[Thread] = []
 
-    def publish(self, threads: List[SysThread]):
+    def publish(self, threads: List[Thread]):
         self._published = threads
         if self.processing_mode is ProcessingMode.OVERLOADED_CORES:
             cores_number = len(self._cores)

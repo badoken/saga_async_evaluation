@@ -1,8 +1,8 @@
 from typing import List
 
-from bin.saga.simple_saga import SimpleSaga
-from bin.sys.operation_system import OperationSystemFactory, ProcessingMode
-from bin.sys.time.duration import Duration
+from src.saga.simple_saga import SimpleSaga
+from src.sys.operation_system import OperationSystemFactory, ProcessingMode
+from src.sys.time.duration import Duration
 
 
 class ThreadedOrchestrator:

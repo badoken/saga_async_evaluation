@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from bin.sys.time.time import TimeDelta
-from bin.sys.time.duration import Duration
+from src.sys.time.time import TimeDelta
+from src.sys.time.duration import Duration
 
 
 class TestTimeDelta(TestCase):

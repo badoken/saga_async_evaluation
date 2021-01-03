@@ -2,11 +2,11 @@ from typing import List
 from unittest import TestCase
 from unittest.mock import Mock, call, ANY
 
-from bin.saga.coroutine_thread import CoroutineThread
-from bin.sys.sys_thread import SysThread
-from bin.saga.task.task import Task
-from bin.sys.time.time import TimeDelta
-from bin.sys.time.duration import Duration
+from src.saga.coroutine_thread import CoroutineThread
+from src.sys.thread import Thread
+from src.saga.task import Task
+from src.sys.time.time import TimeDelta
+from src.sys.time.duration import Duration
 
 
 class TestCoroutineThread(TestCase):
@@ -154,12 +154,12 @@ class TestCoroutineThread(TestCase):
         self.assertEqual([thread1_task, thread2_task], actual)
 
 
-def sys_threads(count: int) -> List[SysThread]:
+def sys_threads(count: int) -> List[Thread]:
     return [sys_thread(name="thread " + str(i + 1)) for i in range(count)]
 
 
-def sys_thread(name: str = "thread") -> SysThread:
-    thread: SysThread = Mock(name=name)
+def sys_thread(name: str = "thread") -> Thread:
+    thread: Thread = Mock(name=name)
     thread.is_finished = lambda: False
 
     task: Task = Mock()
@@ -168,7 +168,7 @@ def sys_thread(name: str = "thread") -> SysThread:
     return thread
 
 
-def given_thread_current_task_is_not_waiting(thread: SysThread, not_waiting_ticks: int):
+def given_thread_current_task_is_not_waiting(thread: Thread, not_waiting_ticks: int):
     is_waiting_answers = [False for _ in range(not_waiting_ticks)]
     current_task: Task = Mock()
     thread.get_current_tasks = lambda: [current_task]
@@ -176,7 +176,7 @@ def given_thread_current_task_is_not_waiting(thread: SysThread, not_waiting_tick
     current_task.is_waiting = lambda: next(iter(is_waiting_answers), True)
 
 
-def given_thread_current_task_is_not_finished(thread: SysThread, not_finished_ticks: int):
+def given_thread_current_task_is_not_finished(thread: Thread, not_finished_ticks: int):
     is_finished_answered = [False for _ in range(not_finished_ticks)]
     thread.ticked = Mock(side_effect=lambda time_delta: is_finished_answered.pop() if is_finished_answered else None)
     thread.is_finished = lambda: next(iter(is_finished_answered), True)

@@ -1,6 +1,6 @@
 from unittest.case import TestCase
 
-from bin.sys.time.duration import Duration
+from src.sys.time.duration import Duration
 
 
 class TestDuration(TestCase):

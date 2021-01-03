@@ -2,12 +2,12 @@ from typing import Tuple
 from unittest import TestCase
 from unittest.mock import Mock, call
 
-from bin.saga.coroutine_thread import CoroutineThreadFactory, CoroutineThread
-from bin.saga.coroutines_orchestrator import CoroutinesOrchestrator
-from bin.saga.simple_saga import SimpleSaga
-from bin.sys.operation_system import OperationSystemFactory, OperationSystem, ProcessingMode
-from bin.saga.task.task import Task, SystemOperation
-from bin.sys.time.duration import Duration
+from src.saga.coroutine_thread import CoroutineThreadFactory, CoroutineThread
+from src.saga.coroutines_orchestrator import CoroutinesOrchestrator
+from src.saga.simple_saga import SimpleSaga
+from src.sys.operation_system import OperationSystemFactory, OperationSystem, ProcessingMode
+from src.saga.task import Task, SystemOperation
+from src.sys.time.duration import Duration
 
 
 class TestCoroutinesOrchestrator(TestCase):

@@ -1,15 +1,15 @@
 from typing import List, Optional
 
-from bin.sys.sys_thread import SysThread
-from bin.saga.task.task import Task
-from bin.sys.time.time import TimeDelta
+from src.sys.thread import Thread
+from src.saga.task import Task
+from src.sys.time.time import TimeDelta
 
 
-class CoroutineThread(SysThread):
-    def __init__(self, threads: List[SysThread], name: str = "_❔coroutine❔_"):
+class CoroutineThread(Thread):
+    def __init__(self, threads: List[Thread], name: str = "_❔coroutine❔_"):
         if any([type(thread) is CoroutineThread for thread in threads]):
             raise ValueError("Coroutine thread specified as input for a new coroutine")
-        self._threads: List[SysThread] = threads
+        self._threads: List[Thread] = threads
         self._name = name
 
     def is_finished(self) -> bool:
@@ -50,7 +50,7 @@ class CoroutineThread(SysThread):
         self._threads.pop(0)
         return True
 
-    def _get_current_thread(self) -> Optional[SysThread]:
+    def _get_current_thread(self) -> Optional[Thread]:
         return next(iter(self._threads), None)
 
     def __str__(self) -> str:
@@ -69,7 +69,7 @@ class CoroutineThreadFactory:
 
     def new(
             self,
-            threads: List[SysThread]
+            threads: List[Thread]
     ) -> CoroutineThread:
         self.last_id += 1
         return CoroutineThread(threads=threads, name="coroutine" + str(self.last_id))

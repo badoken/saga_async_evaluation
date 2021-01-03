@@ -2,15 +2,18 @@ from typing import List, Any
 from unittest import TestCase
 from unittest.mock import Mock, call, ANY
 
-from bin.sys.sys_thread import SysThread
-from bin.sys.core.core import Core
-from bin.sys.time.time import TimeDelta
-from bin.sys.time.duration import Duration
+from src.log import TimeLogger, LogContext
+from src.sys.thread import Thread
+from src.sys.core import Core
+from src.sys.time.time import TimeDelta
+from src.sys.time.duration import Duration
 
 
 class TestCore(TestCase):
     def test_ticked_should_tick_one_thread_till_its_finished(self):
         # given
+        logger = given_logging_context_that_provides_logger()
+
         thread = create_thread(ticks=2)
         core = Core(processing_interval=Duration(20))
 
@@ -21,15 +24,19 @@ class TestCore(TestCase):
         core.ticked(time_delta=TimeDelta(Duration(micros=1)))
 
         # then
-        thread.ticked.assert_has_calls(
-            calls=[
-                call.ticked(TimeDelta(duration=Duration(micros=1), identifier=ANY)),
-                call.ticked(TimeDelta(duration=Duration(micros=1), identifier=ANY))
-            ]
-        )
+        thread.ticked.assert_has_calls([
+            call.ticked(TimeDelta(duration=Duration(micros=1), identifier=ANY)),
+            call.ticked(TimeDelta(duration=Duration(micros=1), identifier=ANY))
+        ])
+        logger.log_core_tick.assert_has_calls([
+            call(identifier=core.identifier),
+            call(identifier=core.identifier)
+        ])
 
     def test_is_starving_should_return_true_when_all_threads_are_processed(self):
         # given
+        logger = given_logging_context_that_provides_logger()
+
         thread1, thread2 = create_threads(count=2, ticks=1)
         core = Core(processing_interval=Duration(5))
 
@@ -44,8 +51,15 @@ class TestCore(TestCase):
         core.ticked(time_delta=TimeDelta(Duration(micros=1)))
         self.assertTrue(core.is_starving())
 
+        logger.log_core_tick.assert_has_calls([
+            call(identifier=core.identifier),
+            call(identifier=core.identifier)
+        ])
+
     def test_is_starving_should_return_true_when_thread_is_processed(self):
         # given
+        logger = given_logging_context_that_provides_logger()
+
         thread1 = create_thread(ticks=1)
         core = Core(processing_interval=Duration(5))
 
@@ -57,8 +71,12 @@ class TestCore(TestCase):
         core.ticked(time_delta=TimeDelta(Duration(micros=1)))
         self.assertTrue(core.is_starving())
 
+        logger.log_core_tick.assert_called_once_with(identifier=core.identifier)
+
     def test_is_starving_should_return_false_when_new_thread_is_assigned(self):
         # given
+        logger = given_logging_context_that_provides_logger()
+
         thread1 = create_thread(ticks=1)
         core = Core(processing_interval=Duration(5))
         core.assign(thread1)
@@ -72,8 +90,12 @@ class TestCore(TestCase):
         # then
         self.assertFalse(core.is_starving())
 
+        logger.log_core_tick.assert_called_once_with(identifier=core.identifier)
+
     def test_is_starving_should_return_false_when_switching_context(self):
         # given
+        logger = given_logging_context_that_provides_logger()
+
         thread1 = create_thread(ticks=20)
         thread2 = create_thread(ticks=20)
         core = Core(processing_interval=Duration(5))
@@ -91,8 +113,18 @@ class TestCore(TestCase):
             )
             core.ticked(time_delta=TimeDelta(Duration(micros=1)))
 
+        logger.log_core_tick.assert_has_calls(
+            [
+                call(identifier=core.identifier)
+                for _
+                in range(core._context_switch_cost.micros + 6)
+            ]
+        )
+
     def test_tick_should_not_switch_context_with_one_thread(self):
         # given
+        logger = given_logging_context_that_provides_logger()
+
         thread = create_thread(ticks=10)
         core = Core(processing_interval=Duration(2))
         core.assign(thread)
@@ -107,9 +139,18 @@ class TestCore(TestCase):
             core.is_starving(),
             msg="Should be starving after the work is done"
         )
+        logger.log_core_tick.assert_has_calls(
+            [
+                call(identifier=core.identifier)
+                for _
+                in range(10)
+            ]
+        )
 
     def test_ticked_should_switch_threads_if_processing_interval_is_not_multiple_of_context_switch_cost(self):
         # given
+        logger = given_logging_context_that_provides_logger()
+
         thread1 = create_thread(ticks=20)
         thread2 = create_thread(ticks=20)
         core = Core(processing_interval=Duration(micros=6))
@@ -124,9 +165,18 @@ class TestCore(TestCase):
         # then
         self.assert_only_calls(called(times=4, duration=Duration(micros=3)), thread1.ticked)
         self.assert_only_calls(called(times=3, duration=Duration(micros=3)), thread2.ticked)
+        logger.log_core_tick.assert_has_calls(
+            [
+                call(identifier=core.identifier)
+                for _
+                in range(10)
+            ]
+        )
 
     def test_ticked_should_switch_threads_if_processing_interval_is_multiple_of_context_switch_cost(self):
         # given
+        logger = given_logging_context_that_provides_logger()
+
         thread1 = create_thread(ticks=20)
         thread2 = create_thread(ticks=20)
         core = Core(processing_interval=Duration(micros=6))
@@ -141,17 +191,24 @@ class TestCore(TestCase):
         # then
         self.assert_only_calls(called(times=4, duration=Duration(micros=4)), thread1.ticked)
         self.assert_only_calls(called(times=3, duration=Duration(micros=4)), thread2.ticked)
+        logger.log_core_tick.assert_has_calls(
+            [
+                call(identifier=core.identifier)
+                for _
+                in range(10)
+            ]
+        )
 
     def assert_only_calls(self, expected_calls: List[Any], mock: Any):
         self.assertEqual(expected_calls, mock.mock_calls)
 
 
-def create_threads(count: int, ticks: int) -> List[SysThread]:
+def create_threads(count: int, ticks: int) -> List[Thread]:
     return [create_thread(ticks, identifier) for identifier in range(count)]
 
 
-def create_thread(ticks: int, identifier: int = 0) -> SysThread:
-    thread: Mock[SysThread] = Mock(name="SysThread" + str(identifier))
+def create_thread(ticks: int, identifier: int = 0) -> Thread:
+    thread: Mock[Thread] = Mock(name="SysThread" + str(identifier))
 
     is_complete_answers: List[bool] = [False for _ in range(ticks)]
 
@@ -165,3 +222,9 @@ def create_thread(ticks: int, identifier: int = 0) -> SysThread:
 
 def called(times: int, duration: Duration = Duration(micros=1)) -> List[Any]:
     return [call(TimeDelta(duration=duration, identifier=ANY)) for _ in range(times)]
+
+
+def given_logging_context_that_provides_logger() -> Mock:
+    logger: Mock[TimeLogger] = Mock()
+    LogContext.logger = lambda: logger
+    return logger

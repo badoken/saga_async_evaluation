@@ -1,9 +1,10 @@
 from unittest import TestCase
-from unittest.mock import Mock, PropertyMock
+from unittest.mock import Mock
 
 from bin.saga.simple_saga import SimpleSaga
-from bin.sys.task import Task, SystemOperation
-from bin.sys.time import Duration, TimeDelta
+from bin.saga.task.task import Task, SystemOperation
+from bin.sys.time.time import TimeDelta
+from bin.sys.time.duration import Duration
 
 
 class TestSimpleSimpleSaga(TestCase):

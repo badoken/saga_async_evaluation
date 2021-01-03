@@ -1,10 +1,11 @@
-from typing import List, Any, Callable
+from typing import List, Any
 from unittest import TestCase
 from unittest.mock import Mock, call, ANY
 
 from bin.sys.sys_thread import SysThread
-from bin.sys.core import Core
-from bin.sys.time import Duration, TimeDelta
+from bin.sys.core.core import Core
+from bin.sys.time.time import TimeDelta
+from bin.sys.time.duration import Duration
 
 
 class TestCore(TestCase):

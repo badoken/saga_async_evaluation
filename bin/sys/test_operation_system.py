@@ -1,14 +1,15 @@
-from typing import List, Tuple
+from typing import List
 
 from unittest.mock import Mock, call, ANY, patch
 
 from unittest import TestCase
 
-from bin.sys.core import Core, CoreFactory
+from bin.sys.core.core import Core, CoreFactory
 from bin.sys.operation_system import OperationSystem, ProcessingMode
 from bin.sys.sys_thread import SysThread
-from bin.sys.task import Task
-from bin.sys.time import Duration, TimeDelta
+from bin.saga.task.task import Task
+from bin.sys.time.time import TimeDelta
+from bin.sys.time.duration import Duration
 
 
 class TestOperationSystem(TestCase):

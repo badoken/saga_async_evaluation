@@ -1,7 +1,9 @@
 from typing import List, Optional
 
 from bin.sys.sys_thread import SysThread
-from bin.sys.time import TimeAffected, Duration, TimeDelta, LogContext
+from bin.sys.time.time import TimeAffected, TimeDelta
+from bin.log.log import LogContext
+from bin.sys.time.duration import Duration
 
 
 class Core(TimeAffected):

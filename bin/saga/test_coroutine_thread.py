@@ -4,8 +4,9 @@ from unittest.mock import Mock, call, ANY
 
 from bin.saga.coroutine_thread import CoroutineThread
 from bin.sys.sys_thread import SysThread
-from bin.sys.task import Task
-from bin.sys.time import TimeDelta, Duration
+from bin.saga.task.task import Task
+from bin.sys.time.time import TimeDelta
+from bin.sys.time.duration import Duration
 
 
 class TestCoroutineThread(TestCase):

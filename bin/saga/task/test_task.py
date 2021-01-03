@@ -1,8 +1,9 @@
 from unittest import TestCase
 from uuid import uuid4
 
-from bin.sys.time import Duration, TimeDelta
-from bin.sys.task import SystemOperation, Task
+from bin.sys.time.time import TimeDelta
+from bin.sys.time.duration import Duration
+from bin.saga.task.task import SystemOperation, Task
 
 
 class TestSystemOperation(TestCase):

@@ -1,8 +1,8 @@
 from abc import abstractmethod
-from typing import Optional, List
+from typing import List
 
-from bin.sys.task import Task
-from bin.sys.time import TimeAffected
+from bin.saga.task.task import Task
+from bin.sys.time.time import TimeAffected
 
 
 class SysThread(TimeAffected):

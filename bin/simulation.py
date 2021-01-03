@@ -1,12 +1,12 @@
 from copy import deepcopy
-from pathlib import Path
 
 from bin.saga.coroutines_orchestrator import CoroutinesOrchestrator
 from bin.saga.threaded_orchestrator import ThreadedOrchestrator
 from bin.saga.simple_saga import SimpleSaga
 from bin.sys.operation_system import ProcessingMode
-from bin.sys.task import Task, SystemOperation
-from bin.sys.time import Duration, LogContext
+from bin.saga.task.task import Task, SystemOperation
+from bin.log.log import LogContext
+from bin.sys.time.duration import Duration
 
 tuff_task = Task(
     operations=[

@@ -2,7 +2,9 @@ from dataclasses import dataclass
 from typing import List, Optional
 from uuid import uuid4
 
-from bin.sys.time import TimeAffected, Duration, TimeDelta, LogContext
+from bin.sys.time.time import TimeAffected, TimeDelta
+from bin.log.log import LogContext
+from bin.sys.time.duration import Duration
 
 
 @dataclass

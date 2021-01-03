@@ -1,95 +1,17 @@
-from typing import Type
-from unittest import TestCase
+from unittest.case import TestCase
 from unittest.mock import patch, Mock, call
 from uuid import uuid4
 
 from xlsxwriter import Workbook
 from xlsxwriter.worksheet import Worksheet
 
-from bin.sys.time import Duration, TimeDelta, TimeLogger, LogContext
-
-
-class TestDuration(TestCase):
-    def test_seconds_milliseconds_and_microseconds(self):
-        # given
-        duration = Duration(micros=567, millis=728, seconds=22)
-
-        # when
-        seconds = duration.seconds
-        milliseconds = duration.millis
-        microseconds = duration.micros
-
-        # then
-        self.assertEqual(seconds, 22.728567)
-        self.assertEqual(milliseconds, 22728.567)
-        self.assertEqual(microseconds, 22728567)
-
-    def test_string_representation(self):
-        # given
-        duration = Duration(micros=5674, millis=3728, seconds=22)
-
-        # when
-        string = duration.__str__()
-        representation = duration.__repr__()
-
-        # then
-        self.assertEqual(string, representation)
-        self.assertEqual("🕒:25s733ms674μs", string)
-
-    def test_minus_string_representation(self):
-        # given
-        duration = Duration(micros=5674, millis=3728, seconds=-22)
-
-        # when
-        string = duration.__str__()
-        representation = duration.__repr__()
-
-        # then
-        self.assertEqual(string, representation)
-        self.assertEqual("🕒:-18s266ms326μs", string)
-
-    def test_eq(self):
-        # given
-        duration = Duration(micros=1)
-        duration_same = Duration(micros=1)
-        duration_different = Duration(micros=2)
-
-        # when
-        same_eq = duration == duration_same
-        different_eq = duration == duration_different
-
-        # then
-        self.assertTrue(same_eq)
-        self.assertFalse(different_eq)
-
-
-class TestTimeDelta(TestCase):
-    def test_new_instance_should_be_unique(self):
-        # given
-        first = TimeDelta(duration=Duration(micros=1))
-        second = TimeDelta(duration=Duration(micros=1))
-
-        # when
-        equals = first.__eq__(second)
-
-        # then
-        self.assertFalse(equals)
-
-    def test_new_instance_should_have_unique_identifier(self):
-        # given
-        first = TimeDelta(duration=Duration(micros=1))
-        second = TimeDelta(duration=Duration(micros=1))
-
-        # when
-        first_id = first.identifier
-        second_id = second.identifier
-
-        # then
-        self.assertNotEqual(first_id, second_id)
+from bin.log.log import TimeLogger, LogContext
+from bin.sys.time.duration import Duration
+from bin.sys.time.time import TimeDelta
 
 
 class TestLogContext(TestCase):
-    @patch("bin.sys.time.TimeLogger")
+    @patch("bin.log.log.TimeLogger")
     def test_run_logging_should_provide_current_logger(self, time_logger_class):
         # given
         delta = TimeDelta(duration=Duration(seconds=2))
@@ -106,7 +28,7 @@ class TestLogContext(TestCase):
         logger.log_core_tick.assert_called_with(identifier=2)
         logger.close.assert_called_once()
 
-    @patch("bin.sys.time.TimeLogger")
+    @patch("bin.log.log.TimeLogger")
     def test_logger_is_inaccessible_outside_of_context(self, time_logger_class):
         # given
         logger: Mock[TimeLogger] = Mock()
@@ -121,7 +43,7 @@ class TestLogContext(TestCase):
         logger.assert_not_called()
         logger.close.assert_not_called()
 
-    @patch("bin.sys.time.TimeLogger")
+    @patch("bin.log.log.TimeLogger")
     def test_shift_time_should_shift_time_of_logger(self, time_logger_class):
         # given
         logger: Mock[TimeLogger] = Mock()
@@ -138,7 +60,7 @@ class TestLogContext(TestCase):
 
 
 class TestTimeLogger(TestCase):
-    @patch("bin.sys.time.Workbook")
+    @patch("bin.log.log.Workbook")
     def test_log_core_should_write_each_core_in_a_separate_column(self, workbook_class):
         # given
         sheet_name = "test_name"
@@ -173,7 +95,7 @@ class TestTimeLogger(TestCase):
 
         workbook.close.assert_called_once()
 
-    @patch("bin.sys.time.Workbook")
+    @patch("bin.log.log.Workbook")
     def test_log_task_should_write_each_task_in_a_separate_column(self, workbook_class):
         # given
         first_task_id = uuid4()
@@ -211,7 +133,7 @@ class TestTimeLogger(TestCase):
 
         workbook.close.assert_called_once()
 
-    @patch("bin.sys.time.Workbook")
+    @patch("bin.log.log.Workbook")
     def test_log_task_should_not_write_same_core_two_times(self, workbook_class):
         # given
         task_id = uuid4()

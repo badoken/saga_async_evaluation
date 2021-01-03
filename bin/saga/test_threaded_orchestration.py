@@ -5,8 +5,8 @@ from unittest.mock import Mock, call
 from bin.saga.threaded_orchestrator import ThreadedOrchestrator
 from bin.saga.simple_saga import SimpleSaga
 from bin.sys.operation_system import OperationSystemFactory, OperationSystem, ProcessingMode
-from bin.sys.task import Task, SystemOperation
-from bin.sys.time import Duration
+from bin.saga.task.task import Task, SystemOperation
+from bin.sys.time.duration import Duration
 
 
 class TestThreadedOrchestrator(TestCase):

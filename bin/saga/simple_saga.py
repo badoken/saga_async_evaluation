@@ -1,8 +1,8 @@
 from typing import List, Optional
 
 from bin.sys.sys_thread import SysThread
-from bin.sys.task import Task
-from bin.sys.time import TimeDelta
+from bin.saga.task.task import Task
+from bin.sys.time.time import TimeDelta
 
 
 class SimpleSaga(SysThread):

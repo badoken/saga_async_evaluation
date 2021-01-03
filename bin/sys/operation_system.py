@@ -4,7 +4,7 @@ from uuid import UUID, uuid4, uuid5
 
 from bin.sys.core import CoreFactory
 from bin.sys.sys_thread import SysThread
-from bin.sys.time import Duration, TimeDelta
+from bin.sys.time import Duration, TimeDelta, LogContext
 
 
 class ProcessingMode(Enum):
@@ -38,9 +38,12 @@ class OperationSystem:
         self._feed_starving_cores()
 
     def tick(self, duration: Duration):
+        self._perform_processing(duration)
+        LogContext.shift_time()
+
+    def _perform_processing(self, duration):
         if self.processing_mode is ProcessingMode.FIXED_POOL_SIZE:
             self._feed_starving_cores()
-
         delta = TimeDelta(duration=duration)
         for core in self._cores:
             print("Triggering core " + str(core))

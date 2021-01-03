@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
-from typing import Callable, Optional, Any
+from typing import Callable, Optional, Any, Dict, Set
 from uuid import UUID, uuid4
 
-import xlsxwriter
+from xlsxwriter import Workbook
 
 
 class Duration:
@@ -129,38 +128,65 @@ class Constants:
         pass  # TODO
 
 
+class _LogAction(Enum):
+    WAITING = 1
+    PROCESSING = 2
+
+
 class TimeLogger:
     def __init__(self, name: str):
-        self._workbook = xlsxwriter.Workbook(filename=name + '.xlsx')
+        self._workbook = Workbook(filename=name + '.xlsx')
         self._sheet = self._workbook.add_worksheet(name=name)
-        self._sheet.write(0, 0, "An operation name")
-        self._sheet.write(0, 2, "A core operation duration")
-        self._sheet.write(0, 3, "A task processing duration")
-        self._sheet.write(0, 4, "A task wait duration")
+
+        self._id_to_column: Dict[str, int] = {}
+        self._already_used_columns: Set[int] = set()
         self._row = 1
 
     def close(self):
+        self.shift_time()
+
+        for i, key in enumerate(self._id_to_column.keys()):
+            self._sheet.write(0, i + 1, key)
+
         self._workbook.close()
 
-    def log_core_tick(self, time_delta: TimeDelta, identifier: int):
-        row = self._get_row_and_increment()
-        self._sheet.write(row, 0, 'core' + str(identifier))
-        self._sheet.write(row, 2, str(time_delta.duration.micros))
+    def shift_time(self):
+        self._sheet.write(self._row, 0, self._row)
+        for untouched_column in (
+                set(self._id_to_column.values()) -
+                self._already_used_columns
+        ):
+            self._sheet.write(self._row, untouched_column, 0)
 
-    def log_task_processing(self, time_delta: TimeDelta, name: str):
-        row = self._get_row_and_increment()
-        self._sheet.write(row, 0, name)
-        self._sheet.write(row, 3, str(time_delta.duration.micros))
+        self._row = self._row + 1
+        self._already_used_columns = set()
 
-    def log_task_waiting(self, time_delta: TimeDelta, name: str):
-        row = self._get_row_and_increment()
-        self._sheet.write(row, 0, name)
-        self._sheet.write(row, 4, str(time_delta.duration.micros))
+    def log_core_tick(self, identifier: int):
+        self._log(identifier="core{" + str(identifier) + "}", action=_LogAction.PROCESSING)
 
-    def _get_row_and_increment(self) -> int:
-        result = self._row
-        self._row = result + 1
-        return result
+    def log_task_processing(self, name: str, identifier: UUID):
+        self._log(identifier=self._task_name(identifier, name), action=_LogAction.PROCESSING)
+
+    def log_task_waiting(self, name: str, identifier: UUID):
+        self._log(identifier=self._task_name(identifier, name), action=_LogAction.WAITING)
+
+    def _log(self, identifier: str, action: _LogAction):
+        column = self._id_to_column.get(identifier)
+        if not column:
+            occupied_columns = list(self._id_to_column.values())
+            occupied_columns.sort(reverse=True)
+            column = next(iter(occupied_columns), 0) + 1
+            self._id_to_column[identifier] = column
+
+        if column in self._already_used_columns:
+            raise ValueError("At this point of time there is a record for " + identifier + " already")
+        self._already_used_columns.add(column)
+
+        self._sheet.write(self._row, column, action.value)
+
+    @staticmethod
+    def _task_name(identifier, name):
+        return "t{" + name + "}[" + str(identifier) + "]"
 
 
 class LogContext:
@@ -176,3 +202,7 @@ class LogContext:
     @staticmethod
     def logger() -> Optional[TimeLogger]:
         return LogContext._logger
+
+    @staticmethod
+    def shift_time():
+        LogContext.logger().shift_time()

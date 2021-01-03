@@ -19,7 +19,7 @@ class Core(TimeAffected):
         self._assign_first_from_pool_if_starving()
 
     def ticked(self, time_delta: TimeDelta):
-        LogContext.logger().log_core_tick(time_delta=time_delta, identifier=self.identifier)
+        LogContext.logger().log_core_tick(identifier=self.identifier)
         self._assign_first_from_pool_if_starving()
 
         if self._processing_slot is None:

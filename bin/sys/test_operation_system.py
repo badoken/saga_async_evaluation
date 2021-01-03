@@ -1,6 +1,6 @@
 from typing import List, Tuple
 
-from unittest.mock import Mock, call, ANY
+from unittest.mock import Mock, call, ANY, patch
 
 from unittest import TestCase
 
@@ -12,7 +12,8 @@ from bin.sys.time import Duration, TimeDelta
 
 
 class TestOperationSystem(TestCase):
-    def test_should_publish_all_tasks_to_core_if_in_overloaded_mode(self):
+    @patch("bin.sys.operation_system.LogContext")
+    def test_should_publish_all_tasks_to_core_if_in_overloaded_mode(self, log_context_class):
         # given
         factory = core_factory()
         core1 = core_mock(factory)
@@ -38,6 +39,7 @@ class TestOperationSystem(TestCase):
             call(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY)),
             call(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY))
         ])
+        log_context_class.shift_time.assert_has_calls([call(), call()])
 
     def test_should_tick_cores_and_trigger_waiting_tasks(self):
         # given

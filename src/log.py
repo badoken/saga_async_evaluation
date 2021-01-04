@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, Set, Optional, Callable, Any
+from typing import Dict, Set, Optional, Callable, Any, TypeVar
 from uuid import UUID
 
 from xlsxwriter import Workbook
@@ -68,13 +68,18 @@ class TimeLogger:
 
 class LogContext:
     _logger: Optional[TimeLogger] = None
+    T = TypeVar('T')
 
     @staticmethod
-    def run_logging(log_name: str, action: Callable[[], Any]):
+    def run_logging(log_name: str, action: Callable[[], T]) -> T:
         LogContext._logger = TimeLogger(name=log_name)
-        action()
+
+        result = action()
+
         LogContext._logger.close()
         LogContext._logger = None
+
+        return result
 
     @staticmethod
     def logger() -> Optional[TimeLogger]:

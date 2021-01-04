@@ -47,20 +47,12 @@ class OperationSystem:
             self._feed_starving_cores()
         delta = TimeDelta(duration=duration)
         for core in self._cores:
-            print("Triggering core " + str(core))
             core.ticked(time_delta=delta)
         for thread in self._published:
             for current_task in thread.get_current_tasks():
                 if not current_task.is_waiting():
                     continue
-
-                print("Triggering wait on task " + str(current_task.name) +
-                      ". Before: " + str(current_task._current_operation_processed_time))
-
                 current_task.wait(time_delta=delta)
-
-                print("Triggering wait on task " + str(current_task.name) +
-                      ". After: " + str(current_task._current_operation_processed_time))
 
     def _feed_starving_cores(self):
         if not len(self._to_process_threads_queue):

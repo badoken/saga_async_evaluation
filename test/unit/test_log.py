@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.case import TestCase
 from unittest.mock import patch, Mock, call
 from uuid import uuid4
@@ -19,14 +20,15 @@ class TestLogContext(TestCase):
         time_logger_class.return_value = logger
 
         # when
-        LogContext.run_logging(
+        actual = LogContext.run_logging(
             log_name="test",
-            action=lambda: LogContext.logger().log_core_tick(identifier=2)
+            action=lambda: log_core_tick_and_return(core_identifier=2, to_return="expected")
         )
 
         # then
         logger.log_core_tick.assert_called_with(identifier=2)
         logger.close.assert_called_once()
+        self.assertEqual("expected", actual)
 
     @patch("src.log.TimeLogger")
     def test_logger_is_inaccessible_outside_of_context(self, time_logger_class):
@@ -57,6 +59,11 @@ class TestLogContext(TestCase):
 
         # then
         logger.shift_time.assert_called_with()
+
+
+def log_core_tick_and_return(core_identifier: int, to_return: Any) -> Any:
+    LogContext.logger().log_core_tick(identifier=core_identifier)
+    return to_return
 
 
 class TestTimeLogger(TestCase):

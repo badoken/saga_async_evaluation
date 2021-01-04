@@ -40,10 +40,6 @@ class CoroutineThread(Thread):
             self._handle_if_finished(thread)
             return
 
-        print(self._name + " was unable to trigger any thread. Threads: " +
-              str([str(thread) for thread in self._threads]))
-        return
-
     def _handle_if_finished(self, thread) -> bool:
         if not thread.is_finished():
             return False

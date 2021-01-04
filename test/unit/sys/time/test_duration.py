@@ -1,5 +1,7 @@
 from unittest.case import TestCase
 
+from parameterized import parameterized
+
 from src.sys.time.duration import Duration
 
 
@@ -55,3 +57,66 @@ class TestDuration(TestCase):
         # then
         self.assertTrue(same_eq)
         self.assertFalse(different_eq)
+
+    def test_rand_between_should_return_duration_in_range(self):
+        # given
+        start = Duration(micros=2)
+        end = Duration(seconds=1)
+
+        # when
+        actual = Duration.rand_between(start=start, end=end)
+
+        # then
+        self.assertLessEqual(start.micros, actual.micros)
+        self.assertGreater(end.micros, actual.micros)
+
+    @parameterized.expand([
+        [-2, True],
+        [-1, True],
+        [0, False],
+    ])
+    def test_rand_between_should_prohibit_negative_start_value(
+            self,
+            start,
+            prohibited
+    ):
+        # given
+        start = Duration(micros=start)
+        end = Duration(seconds=1)
+
+        # when
+        try:
+            Duration.rand_between(start=start, end=end)
+
+        # then
+        except ValueError:
+            if prohibited:
+                return
+            self.fail("Unexpected exception when started = " + str(start))
+
+        if not prohibited:
+            return
+
+        self.fail("Expected an exception to be thrown when started = " + str(start))
+
+    @parameterized.expand([
+        [30, 21],
+        [30, 30]
+    ])
+    def test_rand_between_should_prohibit_end_less_or_equal_to_start(
+            self,
+            start,
+            end
+    ):
+        # given
+        start = Duration(micros=start)
+        end = Duration(micros=end)
+
+        # when
+        try:
+            Duration.rand_between(start=start, end=end)
+
+        # then
+        except ValueError:
+            return
+        self.fail()

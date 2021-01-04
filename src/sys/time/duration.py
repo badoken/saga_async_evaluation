@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from random import randint
+
+
 class Duration:
     def __init__(self, micros: int = 0, millis: int = 0, seconds: int = 0):
         self.micros: int = micros + (millis * 10 ** 3) + (seconds * 10 ** 6)
@@ -5,6 +10,15 @@ class Duration:
     @staticmethod
     def zero():
         return Duration()
+
+    @staticmethod
+    def rand_between(start: Duration, end: Duration) -> Duration:
+        if start.is_negative:
+            raise ValueError("Start should be >= 0, but was " + str(start))
+        if start >= end:
+            raise ValueError("Start should be < end, but start was " + str(start) + " and end was " + str(end))
+
+        return Duration(micros=randint(start.micros, end.micros))
 
     @staticmethod
     def _check_is_time_unit(argument):

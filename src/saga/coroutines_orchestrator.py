@@ -43,9 +43,7 @@ class CoroutinesOrchestrator:
         tick_length = Duration(micros=1)
 
         while not self._system.work_is_done():
-            print(str(result) + " {")
             self._system.tick(tick_length)
             result += tick_length
-            print("}\n")
 
         return result

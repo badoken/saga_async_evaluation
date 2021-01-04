@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Optional
-from uuid import uuid4
+from uuid import uuid4, UUID
 
 from src.sys.time.time import TimeAffected, TimeDelta
 from src.log import LogContext
@@ -22,7 +22,8 @@ class Task(TimeAffected):
     def __init__(
             self,
             operations: List[SystemOperation],
-            name: Optional[str] = None
+            name: Optional[str] = None,
+            identifier: Optional[UUID] = None
     ):
         if not operations:
             raise ValueError('Task should contain operations')
@@ -30,7 +31,7 @@ class Task(TimeAffected):
         self.name = name if name else "_❔task❔_"
         self._current_operation_processed_time: Duration = Duration.zero()
         self._last_time_delta: Optional[TimeDelta] = None
-        self.identifier = uuid4()
+        self.identifier = identifier if identifier else uuid4()
 
     def ticked(self, time_delta: TimeDelta):
         if self.is_complete():

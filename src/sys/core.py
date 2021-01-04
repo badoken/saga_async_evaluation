@@ -38,7 +38,6 @@ class Core(TimeAffected):
             self._threads_pool.append(unasigned)
 
         else:
-            print("Core " + str(self.identifier) + " triggering " + str(self._processing_slot))
             self._processing_slot.ticked(time_delta)
             self._current_thread_processing_duration += time_delta.duration
             self._handle_if_finished()

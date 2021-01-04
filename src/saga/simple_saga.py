@@ -21,11 +21,8 @@ class SimpleSaga(Thread):
         if current_task.is_waiting():
             return
 
-        print("🚀Saga " + str(self._name) + " triggering " + str(current_task.name) +
-              ". Before: " + str(current_task._current_operation_processed_time))
         current_task.ticked(time_delta)
-        print("🚀Saga " + str(self._name) + " triggered " + str(current_task.name) +
-              ". After: " + str(current_task._current_operation_processed_time))
+
         if not current_task.is_complete():
             return
 

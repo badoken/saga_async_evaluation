@@ -40,7 +40,7 @@ class CoroutinesOrchestrator:
 
         self._system.publish(coroutines)
         result = Duration.zero()
-        tick_length = Duration(micros=1)
+        tick_length = Duration(nanos=1)
 
         while not self._system.work_is_done():
             self._system.tick(tick_length)

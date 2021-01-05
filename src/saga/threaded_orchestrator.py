@@ -20,7 +20,7 @@ class ThreadedOrchestrator:
     def process(self, sagas: List[SimpleSaga]) -> Duration:
         self._system.publish(sagas)
         result = Duration.zero()
-        tick_length = Duration(micros=1)
+        tick_length = Duration(nanos=1)
 
         while not self._system.work_is_done():
             self._system.tick(tick_length)

@@ -36,19 +36,19 @@ class TestOperationSystem(TestCase):
 
         # when
         system.publish([thread1, thread2, thread3, thread4])
-        system.tick(duration=Duration(micros=1))
-        system.tick(duration=Duration(micros=1))
+        system.tick(duration=Duration(nanos=1))
+        system.tick(duration=Duration(nanos=1))
 
         # then
         core1.assign.assert_has_calls([call(thread1), call(thread3)])
         core1.ticked.assert_has_calls([
-            call(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY)),
-            call(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY))
+            call(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
+            call(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY))
         ])
         core2.assign.assert_has_calls([call(thread2), call(thread4)])
         core2.ticked.assert_has_calls([
-            call(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY)),
-            call(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY))
+            call(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
+            call(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY))
         ])
         log_context_class.shift_time.assert_has_calls([call(), call()])
         shift_time_method.assert_has_calls([call(), call()])
@@ -75,16 +75,16 @@ class TestOperationSystem(TestCase):
         mock_manager.attach_mock(task.wait, "wait")
 
         # when
-        system.tick(duration=Duration(micros=1))
+        system.tick(duration=Duration(nanos=1))
         task.is_waiting = lambda: False
-        system.tick(duration=Duration(micros=1))
+        system.tick(duration=Duration(nanos=1))
 
         # then
         mock_manager.assert_has_calls(
             calls=[
-                call.ticked(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY)),
-                call.wait(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY)),
-                call.ticked(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY)),
+                call.ticked(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
+                call.wait(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
+                call.ticked(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
             ]
         )
         ticked_first_call_arg: TimeDelta = mock_manager.ticked.call_args_list[0][1]['time_delta']
@@ -112,27 +112,27 @@ class TestOperationSystem(TestCase):
 
         # when
         system.publish([thread1, thread2, thread3, thread4])
-        system.tick(duration=Duration(micros=1))
+        system.tick(duration=Duration(nanos=1))
 
         # then
         core1.assign.assert_called_once_with(thread1)
-        core1.ticked.assert_called_once_with(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY))
+        core1.ticked.assert_called_once_with(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY))
         reset_core_mock(core1)
         core2.assign.assert_called_once_with(thread2)
-        core2.ticked.assert_called_once_with(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY))
+        core2.ticked.assert_called_once_with(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY))
         reset_core_mock(core2)
 
         # when
         core1.is_starving = lambda: True
         core2.is_starving = lambda: True
-        system.tick(duration=Duration(micros=1))
+        system.tick(duration=Duration(nanos=1))
 
         # then
         core1.assign.assert_called_once_with(thread3)
-        core1.ticked.assert_called_once_with(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY))
+        core1.ticked.assert_called_once_with(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY))
         core2.assign.assert_called_once_with(thread4)
-        core2.ticked.assert_called_once_with(time_delta=TimeDelta(Duration(micros=1), identifier=ANY))
-        core2.ticked.assert_called_once_with(time_delta=TimeDelta(Duration(micros=1), identifier=ANY))
+        core2.ticked.assert_called_once_with(time_delta=TimeDelta(Duration(nanos=1), identifier=ANY))
+        core2.ticked.assert_called_once_with(time_delta=TimeDelta(Duration(nanos=1), identifier=ANY))
 
         shift_time_method.assert_has_calls([call(), call()])
 

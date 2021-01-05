@@ -43,9 +43,9 @@ class TestCoroutinesOrchestrator(TestCase):
         system.publish.assert_called_once_with([coroutine1, coroutine2])
         system.tick.assert_has_calls(
             calls=[
-                call.tick(Duration(micros=1)),
-                call.tick(Duration(micros=1)),
-                call.tick(Duration(micros=1))
+                call.tick(Duration(nanos=1)),
+                call.tick(Duration(nanos=1)),
+                call.tick(Duration(nanos=1))
             ]
         )
 
@@ -78,9 +78,9 @@ class TestCoroutinesOrchestrator(TestCase):
         system.publish.assert_called_once_with([coroutine1])
         system.tick.assert_has_calls(
             calls=[
-                call.tick(Duration(micros=1)),
-                call.tick(Duration(micros=1)),
-                call.tick(Duration(micros=1))
+                call.tick(Duration(nanos=1)),
+                call.tick(Duration(nanos=1)),
+                call.tick(Duration(nanos=1))
             ]
         )
 

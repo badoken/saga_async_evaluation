@@ -4,8 +4,8 @@ from random import randint
 
 
 class Duration:
-    def __init__(self, micros: int = 0, millis: int = 0, seconds: int = 0):
-        self.micros: int = micros + (millis * 10 ** 3) + (seconds * 10 ** 6)
+    def __init__(self, nanos: int = 0, micros: int = 0, millis: int = 0, seconds: int = 0):
+        self.nanos: int = nanos + (micros * 10 ** 3) + (millis * 10 ** 6) + (seconds * 10 ** 9)
 
     @staticmethod
     def zero():
@@ -18,7 +18,7 @@ class Duration:
         if start >= end:
             raise ValueError("Start should be < end, but start was " + str(start) + " and end was " + str(end))
 
-        return Duration(micros=randint(start.micros, end.micros))
+        return Duration(nanos=randint(start.nanos, end.nanos))
 
     @staticmethod
     def _check_is_time_unit(argument):
@@ -28,57 +28,61 @@ class Duration:
 
     def __add__(self, other):
         self._check_is_time_unit(other)
-        return Duration(self.micros + other.micros)
+        return Duration(self.nanos + other.nanos)
 
     def __iadd__(self, other):
         self._check_is_time_unit(other)
-        self.micros += other.micros
+        self.nanos += other.nanos
         return self
 
     def __sub__(self, other):
         self._check_is_time_unit(other)
-        return Duration(self.micros - other.micros)
+        return Duration(self.nanos - other.nanos)
 
     def __radd__(self, other):
         self._check_is_time_unit(other)
-        self.micros -= other.micros
+        self.nanos -= other.nanos
         return self
 
     def __gt__(self, other) -> bool:
         self._check_is_time_unit(other)
-        return self.micros > other.micros
+        return self.nanos > other.nanos
 
     def __ge__(self, other) -> bool:
         self._check_is_time_unit(other)
-        return self.micros >= other.micros
+        return self.nanos >= other.nanos
 
     def __lt__(self, other) -> bool:
         self._check_is_time_unit(other)
-        return self.micros < other.micros
+        return self.nanos < other.nanos
 
     def __le__(self, other) -> bool:
         self._check_is_time_unit(other)
-        return self.micros <= other.micros
+        return self.nanos <= other.nanos
 
     @property
     def is_positive(self) -> bool:
-        return self.micros > 0
+        return self.nanos > 0
 
     @property
     def is_zero(self) -> bool:
-        return self.micros == 0
+        return self.nanos == 0
 
     @property
     def is_negative(self) -> bool:
-        return self.micros < 0
+        return self.nanos < 0
+
+    @property
+    def micros(self) -> float:
+        return self.nanos / 10 ** 3
 
     @property
     def millis(self) -> float:
-        return self.micros / 10 ** 3
+        return self.nanos / 10 ** 6
 
     @property
     def seconds(self) -> float:
-        return self.micros / 10 ** 6
+        return self.nanos / 10 ** 9
 
     def __str__(self):
         return self.as_string
@@ -89,20 +93,28 @@ class Duration:
     def __eq__(self, other):
         if type(other) is not Duration:
             return False
-        return self.micros == other.micros
+        return self.nanos == other.nanos
 
     @property
     def as_string(self):
         string_value = "-" if self.is_negative else ""
+
         seconds = abs(self._hundreds(int(self.seconds)))
         if seconds != 0:
             string_value += str(seconds) + "s"
+
         millis = abs(self._hundreds(int(self.millis)))
         if millis != 0:
             string_value += str(millis) + "ms"
-        micros = abs(self._hundreds(self.micros))
+
+        micros = abs(self._hundreds(int(self.micros)))
         if micros != 0:
             string_value += str(micros) + "μs"
+
+        nanos = abs(self._hundreds(self.nanos))
+        if nanos != 0:
+            string_value += str(nanos) + "ns"
+
         if string_value == "":
             string_value = "zero"
         return "🕒:" + string_value + ""

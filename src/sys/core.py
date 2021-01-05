@@ -7,10 +7,10 @@ from src.sys.time.duration import Duration
 
 
 class Core(TimeAffected):
-    def __init__(self, processing_interval: Duration, identifier: int = -1):
+    def __init__(self, processing_interval: Duration, identifier: int = -1, context_switch_cost: Duration = Duration(nanos=20)):
         self.processing_interval = processing_interval
         self.identifier = identifier
-        self._context_switch_cost = Duration(micros=2)  # TODO: constants or to thread
+        self._context_switch_cost = context_switch_cost  # TODO: constants or to thread
         self._threads_pool: List[Thread] = []
         self._processing_slot: Optional[Thread] = None
         self._current_thread_processing_duration: Duration = Duration.zero()
@@ -34,8 +34,8 @@ class Core(TimeAffected):
                 return
 
             self._reset_counters()
-            unasigned = self._unassign_current()
-            self._threads_pool.append(unasigned)
+            unassigned = self._unassign_current()
+            self._threads_pool.append(unassigned)
 
         else:
             self._processing_slot.ticked(time_delta)

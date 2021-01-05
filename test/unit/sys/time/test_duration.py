@@ -6,23 +6,41 @@ from src.sys.time.duration import Duration
 
 
 class TestDuration(TestCase):
-    def test_seconds_milliseconds_and_microseconds(self):
+    def test_particular_values_without_surplus(self):
         # given
-        duration = Duration(micros=567, millis=728, seconds=22)
+        duration = Duration(nanos=338, micros=567, millis=728, seconds=22)
 
         # when
         seconds = duration.seconds
         milliseconds = duration.millis
         microseconds = duration.micros
+        nanoseconds = duration.nanos
 
         # then
-        self.assertEqual(seconds, 22.728567)
-        self.assertEqual(milliseconds, 22728.567)
-        self.assertEqual(microseconds, 22728567)
+        self.assertEqual(seconds, 22.728567338)
+        self.assertEqual(milliseconds, 22728.567338)
+        self.assertEqual(microseconds, 22728567.338)
+        self.assertEqual(nanoseconds, 22728567338)
+
+    def test_particular_values_without_surplus(self):
+        # given
+        duration = Duration(nanos=3482, micros=15888, millis=2113, seconds=5)
+
+        # when
+        seconds = duration.seconds
+        milliseconds = duration.millis
+        microseconds = duration.micros
+        nanoseconds = duration.nanos
+
+        # then
+        self.assertEqual(seconds, 7.128891482)
+        self.assertEqual(milliseconds, 7128.891482)
+        self.assertEqual(microseconds, 7128891.482)
+        self.assertEqual(nanoseconds, 7128891482)
 
     def test_string_representation(self):
         # given
-        duration = Duration(micros=5674, millis=3728, seconds=22)
+        duration = Duration(nanos=665, micros=5674, millis=3728, seconds=22)
 
         # when
         string = duration.__str__()
@@ -30,11 +48,11 @@ class TestDuration(TestCase):
 
         # then
         self.assertEqual(string, representation)
-        self.assertEqual("🕒:25s733ms674μs", string)
+        self.assertEqual("🕒:25s733ms674μs665ns", string)
 
     def test_minus_string_representation(self):
         # given
-        duration = Duration(micros=5674, millis=3728, seconds=-22)
+        duration = Duration(nanos=143, micros=5674, millis=3728, seconds=-22)
 
         # when
         string = duration.__str__()
@@ -42,13 +60,13 @@ class TestDuration(TestCase):
 
         # then
         self.assertEqual(string, representation)
-        self.assertEqual("🕒:-18s266ms326μs", string)
+        self.assertEqual("🕒:-18s266ms325μs857ns", string)
 
     def test_eq(self):
         # given
-        duration = Duration(micros=1)
-        duration_same = Duration(micros=1)
-        duration_different = Duration(micros=2)
+        duration = Duration(nanos=1)
+        duration_same = Duration(nanos=1)
+        duration_different = Duration(nanos=2)
 
         # when
         same_eq = duration == duration_same
@@ -61,7 +79,7 @@ class TestDuration(TestCase):
     def test_rand_between_should_return_duration_in_range(self):
         # given
         start = Duration(micros=2)
-        end = Duration(seconds=1)
+        end = Duration(millis=1)
 
         # when
         actual = Duration.rand_between(start=start, end=end)

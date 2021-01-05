@@ -12,26 +12,26 @@ class TestSimpleSimpleSaga(TestCase):
     def test_tick_should_tick_all_tasks_until_they_finish(self):
         # given
         saga = SimpleSaga(tasks=[
-            create_tickable_task(processing_duration_before_completion=Duration(micros=3)),
-            create_tickable_task(processing_duration_before_completion=Duration(micros=2))
+            create_tickable_task(processing_duration_before_completion=Duration(nanos=3)),
+            create_tickable_task(processing_duration_before_completion=Duration(nanos=2))
         ])
 
         # then
         self.assertFalse(saga.is_finished())
 
-        saga.ticked(time_delta=TimeDelta(duration=Duration(micros=4)))
+        saga.ticked(time_delta=TimeDelta(duration=Duration(nanos=4)))
         self.assertFalse(saga.is_finished())
 
-        saga.ticked(time_delta=TimeDelta(duration=Duration(micros=2)))
+        saga.ticked(time_delta=TimeDelta(duration=Duration(nanos=2)))
         self.assertTrue(saga.is_finished())
 
-        saga.ticked(time_delta=TimeDelta(duration=Duration(micros=4)))
+        saga.ticked(time_delta=TimeDelta(duration=Duration(nanos=4)))
         self.assertTrue(saga.is_finished())
 
     def test_get_current_tasks_should_provide_first_task_if_present(self):
         # given
-        task1 = create_tickable_task(processing_duration_before_completion=Duration(micros=3))
-        task2 = create_tickable_task(processing_duration_before_completion=Duration(micros=2))
+        task1 = create_tickable_task(processing_duration_before_completion=Duration(nanos=3))
+        task2 = create_tickable_task(processing_duration_before_completion=Duration(nanos=2))
         saga = SimpleSaga(tasks=[task1, task2])
 
         # when
@@ -42,11 +42,11 @@ class TestSimpleSimpleSaga(TestCase):
 
     def test_get_current_tasks_should_return_none_if_no_current_task_present(self):
         # given
-        task = create_tickable_task(processing_duration_before_completion=Duration(micros=2))
+        task = create_tickable_task(processing_duration_before_completion=Duration(nanos=2))
         saga = SimpleSaga(tasks=[task])
 
         # when
-        saga.ticked(time_delta=TimeDelta(duration=Duration(micros=3)))
+        saga.ticked(time_delta=TimeDelta(duration=Duration(nanos=3)))
         result = saga.get_current_tasks()
 
         # then
@@ -54,11 +54,11 @@ class TestSimpleSimpleSaga(TestCase):
 
     def test_tick_should_tick_task_only_if_not_waiting(self):
         # given
-        task = create_tickable_task(processing_duration_before_completion=Duration(micros=2), to_process=False)
+        task = create_tickable_task(processing_duration_before_completion=Duration(nanos=2), to_process=False)
         saga = SimpleSaga(tasks=[task])
 
         # when
-        saga.ticked(time_delta=TimeDelta(duration=Duration(micros=3)))
+        saga.ticked(time_delta=TimeDelta(duration=Duration(nanos=3)))
 
         # then
         task.ticked.assert_not_called()
@@ -72,7 +72,7 @@ def create_fixed_task(completed: bool) -> Task:
 
 def create_tickable_task(processing_duration_before_completion: Duration, to_process: bool = True) -> Task:
     task = Mock()
-    is_finished_answered = [False for _ in range(processing_duration_before_completion.micros)]
+    is_finished_answered = [False for _ in range(processing_duration_before_completion.nanos)]
 
     if to_process:
         task.wait = raise_error
@@ -95,7 +95,7 @@ def raise_error(time_delta: TimeDelta):
 
 
 def remove_times(elements: List[bool], time_delta: TimeDelta):
-    times = time_delta.duration.micros
+    times = time_delta.duration.nanos
     if len(elements) < times:
         elements.clear()
         return

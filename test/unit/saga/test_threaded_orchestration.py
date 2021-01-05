@@ -36,9 +36,9 @@ class TestThreadedOrchestrator(TestCase):
         system.publish.assert_called_once_with([saga])
         system.tick.assert_has_calls(
             calls=[
-                call.tick(Duration(micros=1)),
-                call.tick(Duration(micros=1)),
-                call.tick(Duration(micros=1))
+                call.tick(Duration(nanos=1)),
+                call.tick(Duration(nanos=1)),
+                call.tick(Duration(nanos=1))
             ]
         )
 

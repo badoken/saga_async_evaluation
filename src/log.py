@@ -90,7 +90,7 @@ class LogContext:
     @staticmethod
     def logger() -> Optional[TimeLogger]:
         # with LogContext._lock:
-        return LogContext._logger[threading.get_ident()]
+        return LogContext._logger.get(threading.get_ident())
 
     @staticmethod
     def shift_time():

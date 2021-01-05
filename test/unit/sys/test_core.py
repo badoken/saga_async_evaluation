@@ -26,14 +26,14 @@ class TestCore(TestCase):
 
         # when
         core.assign(thread)
-        core.ticked(time_delta=TimeDelta(Duration(micros=1)))
-        core.ticked(time_delta=TimeDelta(Duration(micros=1)))
-        core.ticked(time_delta=TimeDelta(Duration(micros=1)))
+        core.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+        core.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+        core.ticked(time_delta=TimeDelta(Duration(nanos=1)))
 
         # then
         thread.ticked.assert_has_calls([
-            call.ticked(TimeDelta(duration=Duration(micros=1), identifier=ANY)),
-            call.ticked(TimeDelta(duration=Duration(micros=1), identifier=ANY))
+            call.ticked(TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
+            call.ticked(TimeDelta(duration=Duration(nanos=1), identifier=ANY))
         ])
         logger.log_core_tick.assert_has_calls([
             call(identifier=core.identifier),
@@ -53,9 +53,9 @@ class TestCore(TestCase):
 
         # then
         self.assertFalse(core.is_starving())
-        core.ticked(time_delta=TimeDelta(Duration(micros=1)))
+        core.ticked(time_delta=TimeDelta(Duration(nanos=1)))
         self.assertFalse(core.is_starving())
-        core.ticked(time_delta=TimeDelta(Duration(micros=1)))
+        core.ticked(time_delta=TimeDelta(Duration(nanos=1)))
         self.assertTrue(core.is_starving())
 
         logger.log_core_tick.assert_has_calls([
@@ -75,7 +75,7 @@ class TestCore(TestCase):
 
         # then
         self.assertFalse(core.is_starving())
-        core.ticked(time_delta=TimeDelta(Duration(micros=1)))
+        core.ticked(time_delta=TimeDelta(Duration(nanos=1)))
         self.assertTrue(core.is_starving())
 
         logger.log_core_tick.assert_called_once_with(identifier=core.identifier)
@@ -91,7 +91,7 @@ class TestCore(TestCase):
         thread2 = create_thread(ticks=1)
 
         # when
-        core.ticked(time_delta=TimeDelta(Duration(micros=1)))
+        core.ticked(time_delta=TimeDelta(Duration(nanos=1)))
         core.assign(thread2)
 
         # then
@@ -105,26 +105,26 @@ class TestCore(TestCase):
 
         thread1 = create_thread(ticks=20)
         thread2 = create_thread(ticks=20)
-        core = Core(processing_interval=Duration(5))
+        core = Core(processing_interval=Duration(nanos=5))
         core.assign(thread1)
         core.assign(thread2)
 
         # when
-        core.ticked(TimeDelta(Duration(micros=5)))
+        core.ticked(TimeDelta(Duration(nanos=5)))
 
         # then
-        for microsecond in range(core._context_switch_cost.micros + 5):
+        for nanoseconds in range(core._context_switch_cost.nanos + 5):
             self.assertFalse(
                 core.is_starving(),
-                msg="Should not be starving during context switch and after at " + str(Duration(micros=microsecond))
+                msg="Should not be starving during context switch and after at " + str(Duration(nanos=nanoseconds))
             )
-            core.ticked(time_delta=TimeDelta(Duration(micros=1)))
+            core.ticked(time_delta=TimeDelta(Duration(nanos=1)))
 
         logger.log_core_tick.assert_has_calls(
             [
                 call(identifier=core.identifier)
                 for _
-                in range(core._context_switch_cost.micros + 6)
+                in range(core._context_switch_cost.nanos + 6)
             ]
         )
 
@@ -138,8 +138,8 @@ class TestCore(TestCase):
 
         # when
         for microsecond in range(10):
-            core.ticked(TimeDelta(Duration(micros=1)))
-            core.ticked(time_delta=TimeDelta(Duration(micros=1)))
+            core.ticked(TimeDelta(Duration(nanos=1)))
+            core.ticked(time_delta=TimeDelta(Duration(nanos=1)))
 
         # then
         self.assertTrue(
@@ -160,18 +160,18 @@ class TestCore(TestCase):
 
         thread1 = create_thread(ticks=20)
         thread2 = create_thread(ticks=20)
-        core = Core(processing_interval=Duration(micros=6))
+        core = Core(processing_interval=Duration(nanos=6), context_switch_cost=Duration(nanos=2))
 
         # when
         core.assign(thread1)
         core.assign(thread2)
 
         for tick_number in range(10):
-            core.ticked(time_delta=TimeDelta(Duration(micros=3)))
+            core.ticked(time_delta=TimeDelta(Duration(nanos=3)))
 
         # then
-        self.assert_only_calls(called(times=4, duration=Duration(micros=3)), thread1.ticked)
-        self.assert_only_calls(called(times=3, duration=Duration(micros=3)), thread2.ticked)
+        self.assert_only_calls(called(times=4, duration=Duration(nanos=3)), thread1.ticked)
+        self.assert_only_calls(called(times=3, duration=Duration(nanos=3)), thread2.ticked)
         logger.log_core_tick.assert_has_calls(
             [
                 call(identifier=core.identifier)
@@ -186,18 +186,18 @@ class TestCore(TestCase):
 
         thread1 = create_thread(ticks=20)
         thread2 = create_thread(ticks=20)
-        core = Core(processing_interval=Duration(micros=6))
+        core = Core(processing_interval=Duration(nanos=6), context_switch_cost=Duration(nanos=2))
 
         # when
         core.assign(thread1)
         core.assign(thread2)
 
         for tick_number in range(10):
-            core.ticked(time_delta=TimeDelta(Duration(micros=4)))
+            core.ticked(time_delta=TimeDelta(Duration(nanos=4)))
 
         # then
-        self.assert_only_calls(called(times=4, duration=Duration(micros=4)), thread1.ticked)
-        self.assert_only_calls(called(times=3, duration=Duration(micros=4)), thread2.ticked)
+        self.assert_only_calls(called(times=4, duration=Duration(nanos=4)), thread1.ticked)
+        self.assert_only_calls(called(times=3, duration=Duration(nanos=4)), thread2.ticked)
         logger.log_core_tick.assert_has_calls(
             [
                 call(identifier=core.identifier)
@@ -227,7 +227,7 @@ def create_thread(ticks: int, identifier: int = 0) -> Thread:
     return thread
 
 
-def called(times: int, duration: Duration = Duration(micros=1)) -> List[Any]:
+def called(times: int, duration: Duration = Duration(nanos=1)) -> List[Any]:
     return [call(TimeDelta(duration=duration, identifier=ANY)) for _ in range(times)]
 
 

@@ -1,8 +1,9 @@
+import csv
+import threading
 from enum import Enum
-from typing import Dict, Set, Optional, Callable, Any, TypeVar
+from threading import local
+from typing import Dict, Set, Optional, Callable, TypeVar, OrderedDict
 from uuid import UUID
-
-from xlsxwriter import Workbook
 
 
 class _LogAction(Enum):
@@ -12,31 +13,31 @@ class _LogAction(Enum):
 
 class TimeLogger:
     def __init__(self, name: str):
-        self._workbook = Workbook(filename=name + '.xlsx')
-        self._sheet = self._workbook.add_worksheet(name=name)
+        self._csv_file = open(file=name + '.csv', mode="w")
+        self._writer = csv.writer(self._csv_file)
 
-        self._id_to_column: Dict[str, int] = {}
-        self._already_used_columns: Set[int] = set()
-        self._row = 1
+        self._known_identifiers: Set[str] = set()
+        self._row: OrderedDict[str, str]
+        self._row_number: int = 0
+        self._init_new_row()
 
     def close(self):
         self.shift_time()
-
-        for i, key in enumerate(self._id_to_column.keys()):
-            self._sheet.write(0, i + 1, key)
-
-        self._workbook.close()
+        self._csv_file.close()
 
     def shift_time(self):
-        self._sheet.write(self._row, 0, self._row)
-        for untouched_column in (
-                set(self._id_to_column.values()) -
-                self._already_used_columns
-        ):
-            self._sheet.write(self._row, untouched_column, 0)
+        identifiers_to_add = self._known_identifiers.difference(self._row.keys())
+        self._row.update(
+            dict(
+                zip(
+                    identifiers_to_add,
+                    [0 for _ in range(len(identifiers_to_add))]
+                )
+            )
+        )
 
-        self._row = self._row + 1
-        self._already_used_columns = set()
+        self._writer.writerow(self._row.values())
+        self._init_new_row()
 
     def log_core_tick(self, identifier: int):
         self._log(identifier="core{" + str(identifier) + "}", action=_LogAction.PROCESSING)
@@ -48,18 +49,16 @@ class TimeLogger:
         self._log(identifier=self._task_name(identifier, name), action=_LogAction.WAITING)
 
     def _log(self, identifier: str, action: _LogAction):
-        column = self._id_to_column.get(identifier)
-        if not column:
-            occupied_columns = list(self._id_to_column.values())
-            occupied_columns.sort(reverse=True)
-            column = next(iter(occupied_columns), 0) + 1
-            self._id_to_column[identifier] = column
-
-        if column in self._already_used_columns:
+        if identifier in self._row is not None:
             raise ValueError("At this point of time there is a record for " + identifier + " already")
-        self._already_used_columns.add(column)
 
-        self._sheet.write(self._row, column, action.value)
+        self._known_identifiers.add(identifier)
+        self._row[identifier] = action.value
+
+    def _init_new_row(self):
+        self._row_number += 1
+        self._row = OrderedDict[str, str]()
+        self._row["microseconds"] = str(self._row_number)
 
     @staticmethod
     def _task_name(identifier, name):
@@ -67,23 +66,31 @@ class TimeLogger:
 
 
 class LogContext:
-    _logger: Optional[TimeLogger] = None
+    _lock = threading.Lock()
+    _logger: Dict[int, TimeLogger] = {}
     T = TypeVar('T')
 
     @staticmethod
     def run_logging(log_name: str, action: Callable[[], T]) -> T:
-        LogContext._logger = TimeLogger(name=log_name)
+        with LogContext._lock:
+            LogContext._logger[threading.get_ident()] = TimeLogger(name=log_name)
 
-        result = action()
+        print("Running log in " + str(threading.get_ident()) + " and logger is " + (
+            str(LogContext._logger) if hasattr(LogContext, "_logger") and LogContext._logger is not None else "None"))
 
-        LogContext._logger.close()
-        LogContext._logger = None
+        try:
+            result = action()
+        finally:
+            with LogContext._lock:
+                LogContext.logger().close()
+                LogContext._logger.pop(threading.get_ident())
 
         return result
 
     @staticmethod
     def logger() -> Optional[TimeLogger]:
-        return LogContext._logger
+        # with LogContext._lock:
+        return LogContext._logger[threading.get_ident()]
 
     @staticmethod
     def shift_time():

@@ -1,4 +1,6 @@
 from copy import deepcopy
+from threading import Thread
+from typing import List
 
 from saga.generation import generate_saga
 from src.log import LogContext
@@ -16,20 +18,41 @@ overloaded_threads_orchestrator = ThreadedOrchestrator(cores_count=2, processing
 fixed_pool_threads_orchestrator = ThreadedOrchestrator(cores_count=2, processing_mode=ProcessingMode.FIXED_POOL_SIZE)
 coroutines_orchestrator = CoroutinesOrchestrator(cores_count=2)
 
-overloaded = LogContext.run_logging(
-    log_name="Overloaded",
-    action=lambda: overloaded_threads_orchestrator.process(deepcopy(sagas))
-)
-print("Overloaded system is done in " + str(overloaded))
+threads: List[Thread] = []
 
-fixed_pool = LogContext.run_logging(
-    log_name="Fixed pool",
-    action=lambda: fixed_pool_threads_orchestrator.process(deepcopy(sagas))
-)
-print("Fixed thread pool is done in " + str(fixed_pool))
 
-coroutines = LogContext.run_logging(
-    log_name="Coroutines",
-    action=lambda: coroutines_orchestrator.process(deepcopy(sagas))
+def run_simulation_in_parallel(orchestrator, short_name: str, full_name: str):
+    new_thread = Thread(
+        name=short_name,
+        target=lambda:
+        print(full_name + " done in " + str(
+            LogContext.run_logging(
+                log_name=short_name,
+                action=lambda: orchestrator.process(deepcopy(sagas))
+            )
+        ))
+    )
+    threads.append(new_thread)
+    new_thread.start()
+
+
+run_simulation_in_parallel(
+    orchestrator=overloaded_threads_orchestrator,
+    short_name="overloaded",
+    full_name="Overloaded system"
 )
-print("Coroutines are done in " + str(coroutines))
+
+run_simulation_in_parallel(
+    orchestrator=fixed_pool_threads_orchestrator,
+    short_name="fixed_pool",
+    full_name="Fixed thread pool"
+)
+
+run_simulation_in_parallel(
+    orchestrator=coroutines_orchestrator,
+    short_name="async",
+    full_name="Coroutines"
+)
+
+for thread in threads:
+    thread.join()

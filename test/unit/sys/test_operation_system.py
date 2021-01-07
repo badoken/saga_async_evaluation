@@ -190,7 +190,7 @@ def core_factory() -> CoreFactory:
 
 
 def core_mock(factory: CoreFactory) -> Core:
-    core1 = Core(processing_interval=Duration(20), identifier=1)
+    core1 = Core(processing_interval=Duration(20), core_number=1)
     core1.ticked = Mock()
     core1.assign = Mock(wraps=core1.assign)
     factory.mocks.append(core1)

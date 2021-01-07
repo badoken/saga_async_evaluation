@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, NewType
 
 from src.sys.thread import Thread
 from src.sys.time.time import TimeAffected, TimeDelta
@@ -7,9 +7,14 @@ from src.sys.time.duration import Duration
 
 
 class Core(TimeAffected):
-    def __init__(self, processing_interval: Duration, identifier: int = -1, context_switch_cost: Duration = Duration(nanos=20)):
+    def __init__(
+            self,
+            processing_interval: Duration,
+            core_number: int = -1,
+            context_switch_cost: Duration = Duration(nanos=20)
+    ):
         self.processing_interval = processing_interval
-        self.identifier = identifier
+        self.number = core_number
         self._context_switch_cost = context_switch_cost  # TODO: constants or to thread
         self._threads_pool: List[Thread] = []
         self._processing_slot: Optional[Thread] = None
@@ -21,7 +26,7 @@ class Core(TimeAffected):
         self._assign_first_from_pool_if_starving()
 
     def ticked(self, time_delta: TimeDelta):
-        LogContext.logger().log_core_tick(identifier=self.identifier)
+        LogContext.logger().log_core_tick(core_number=self.number)
         self._assign_first_from_pool_if_starving()
 
         if self._processing_slot is None:
@@ -52,7 +57,7 @@ class Core(TimeAffected):
         return self._as_string()
 
     def _as_string(self):
-        return "Core(" + str(self.identifier) + ")"
+        return "Core(" + str(self.number) + ")"
 
     def _assign_first_from_pool_if_starving(self):
         if self._processing_slot is not None:
@@ -84,7 +89,7 @@ class Core(TimeAffected):
 
 class CoreFactory:
     def __init__(self):
-        self.last_id = -1
+        self.last_core_number = -1
 
     def new(
             self,
@@ -93,6 +98,6 @@ class CoreFactory:
     ) -> List[Core]:
         cores = []
         for i in range(count):
-            self.last_id += 1
-            cores.append(Core(identifier=self.last_id, processing_interval=processing_interval))
+            self.last_core_number += 1
+            cores.append(Core(core_number=self.last_core_number, processing_interval=processing_interval))
         return cores

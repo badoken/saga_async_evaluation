@@ -39,7 +39,7 @@ def _generate_command() -> Task:
     )
 
 
-def _generate_fs_write() -> Task:  # TODO nanosecs
+def _generate_fs_write() -> Task:
     command_id = uuid4()
 
     return Task(
@@ -66,24 +66,24 @@ def _generate_fs_data_block_write(block_number: int, command_id: uuid4()) -> Lis
             to_process=True,
             name="Data block " + str(block_number) + " write [" + str(command_id) + "]",
             duration=Duration.rand_between(
-                start=Duration(micros=1),
-                end=Duration(micros=2)
+                start=Duration(micros=3),
+                end=Duration(micros=5)
             )
         ),
         SystemOperation(
-            to_process=True,
+            to_process=False,
             name="Data block " + str(block_number) + " wait [" + str(command_id) + "]",
             duration=Duration.rand_between(
-                start=Duration(micros=3),
-                end=Duration(micros=4)
+                start=Duration(micros=8),
+                end=Duration(micros=11)
             )
         ),
         SystemOperation(
-            to_process=True,
+            to_process=False,
             name="Data block " + str(block_number) + " jbd2 wait [" + str(command_id) + "]",
             duration=Duration.rand_between(
-                start=Duration(micros=5),
-                end=Duration(micros=6)
+                start=Duration(micros=20),
+                end=Duration(micros=24)
             )
         )
     ]

@@ -36,8 +36,8 @@ class TestCore(TestCase):
             call.ticked(TimeDelta(duration=Duration(nanos=1), identifier=ANY))
         ])
         logger.log_core_tick.assert_has_calls([
-            call(identifier=core.identifier),
-            call(identifier=core.identifier)
+            call(core_number=core.number),
+            call(core_number=core.number)
         ])
 
     def test_is_starving_should_return_true_when_all_threads_are_processed(self):
@@ -59,8 +59,8 @@ class TestCore(TestCase):
         self.assertTrue(core.is_starving())
 
         logger.log_core_tick.assert_has_calls([
-            call(identifier=core.identifier),
-            call(identifier=core.identifier)
+            call(core_number=core.number),
+            call(core_number=core.number)
         ])
 
     def test_is_starving_should_return_true_when_thread_is_processed(self):
@@ -78,7 +78,7 @@ class TestCore(TestCase):
         core.ticked(time_delta=TimeDelta(Duration(nanos=1)))
         self.assertTrue(core.is_starving())
 
-        logger.log_core_tick.assert_called_once_with(identifier=core.identifier)
+        logger.log_core_tick.assert_called_once_with(core_number=core.number)
 
     def test_is_starving_should_return_false_when_new_thread_is_assigned(self):
         # given
@@ -97,7 +97,7 @@ class TestCore(TestCase):
         # then
         self.assertFalse(core.is_starving())
 
-        logger.log_core_tick.assert_called_once_with(identifier=core.identifier)
+        logger.log_core_tick.assert_called_once_with(core_number=core.number)
 
     def test_is_starving_should_return_false_when_switching_context(self):
         # given
@@ -122,7 +122,7 @@ class TestCore(TestCase):
 
         logger.log_core_tick.assert_has_calls(
             [
-                call(identifier=core.identifier)
+                call(core_number=core.number)
                 for _
                 in range(core._context_switch_cost.nanos + 6)
             ]
@@ -148,7 +148,7 @@ class TestCore(TestCase):
         )
         logger.log_core_tick.assert_has_calls(
             [
-                call(identifier=core.identifier)
+                call(core_number=core.number)
                 for _
                 in range(10)
             ]
@@ -174,7 +174,7 @@ class TestCore(TestCase):
         self.assert_only_calls(called(times=3, duration=Duration(nanos=3)), thread2.ticked)
         logger.log_core_tick.assert_has_calls(
             [
-                call(identifier=core.identifier)
+                call(core_number=core.number)
                 for _
                 in range(10)
             ]
@@ -200,7 +200,7 @@ class TestCore(TestCase):
         self.assert_only_calls(called(times=3, duration=Duration(nanos=4)), thread2.ticked)
         logger.log_core_tick.assert_has_calls(
             [
-                call(identifier=core.identifier)
+                call(core_number=core.number)
                 for _
                 in range(10)
             ]

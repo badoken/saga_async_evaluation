@@ -1,3 +1,4 @@
+from typing import Any, List
 from unittest.case import TestCase
 
 from parameterized import parameterized
@@ -138,3 +139,68 @@ class TestDuration(TestCase):
         except ValueError:
             return
         self.fail()
+
+    @parameterized.expand([
+        [Duration(nanos=6), 3, Duration(nanos=2)],
+        [Duration(nanos=22), 5.5, Duration(nanos=4)],
+        [Duration(nanos=15), Duration(nanos=5), Duration(nanos=3)]
+    ])
+    def test_truediv_should_return_quotient_if_number_specified(
+            self,
+            dividend: Duration,
+            divisor: Any,
+            quotient: Duration
+    ):
+        # when
+        actual = dividend / divisor
+
+        # then
+        self.assertEquals(quotient, actual)
+
+    @parameterized.expand([
+        [Duration(nanos=5), Duration(nanos=15), Duration(nanos=5)],
+        [Duration(nanos=25), Duration(nanos=15), Duration(nanos=10)]
+    ])
+    def test_mod_should_provide_quotient(
+            self,
+            dividend: Duration,
+            divisor: Any,
+            quotient: Duration
+    ):
+        # when
+        actual = dividend % divisor
+
+        # then
+        self.assertEquals(quotient, actual)
+
+    @parameterized.expand([
+        [[Duration(nanos=5), Duration(nanos=15)], Duration(nanos=20)],
+        [[Duration(nanos=25), Duration(nanos=-15)], Duration(nanos=10)],
+        [[], Duration.zero()]
+    ])
+    def test_sum_should_return_reduction_of_all_values(
+            self,
+            values: List[Duration],
+            expected: Any
+    ):
+        # when
+        actual = Duration.sum(values)
+
+        # then
+        self.assertEquals(expected, actual)
+
+    @parameterized.expand([
+        [[Duration(nanos=5), Duration(nanos=15)], Duration(nanos=10)],
+        [[Duration(nanos=25), Duration(nanos=-25)], Duration.zero()],
+        [[], Duration.zero()]
+    ])
+    def test_avg_should_return_reduction_of_all_values(
+            self,
+            values: List[Duration],
+            expected: Any
+    ):
+        # when
+        actual = Duration.avg(values)
+
+        # then
+        self.assertEquals(expected, actual)

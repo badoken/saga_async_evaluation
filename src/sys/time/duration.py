@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from functools import reduce
+from numbers import Number
 from random import randint
+from typing import Union, Iterable, TypeVar, Collection
 
 
 class Duration:
@@ -21,44 +24,71 @@ class Duration:
         return Duration(nanos=randint(start.nanos, end.nanos))
 
     @staticmethod
-    def _check_is_time_unit(argument):
+    def avg(durations: Collection[Duration]) -> Duration:
+        if not durations:
+            return Duration.zero()
+        return Duration.sum(durations) / len(durations)
+
+    @staticmethod
+    def sum(durations: Collection[Duration]) -> Duration:
+        if not durations:
+            return Duration.zero()
+        return reduce(lambda a, b: a + b, durations)
+
+    @staticmethod
+    def _check_is_duration(argument):
         argument_type = type(argument)
         if argument_type is not Duration:
-            TypeError("Expected to receive " + str(type(Duration)) + " but was " + str(argument_type))
+            raise TypeError("Expected to receive " + str(type(Duration)) + " but was " + str(argument_type))
 
-    def __add__(self, other):
-        self._check_is_time_unit(other)
+    def __add__(self, other: Duration) -> Duration:
+        self._check_is_duration(other)
         return Duration(self.nanos + other.nanos)
 
-    def __iadd__(self, other):
-        self._check_is_time_unit(other)
+    def __iadd__(self, other: Duration) -> Duration:
+        self._check_is_duration(other)
         self.nanos += other.nanos
         return self
 
-    def __sub__(self, other):
-        self._check_is_time_unit(other)
+    def __sub__(self, other: Duration) -> Duration:
+        self._check_is_duration(other)
         return Duration(self.nanos - other.nanos)
 
-    def __radd__(self, other):
-        self._check_is_time_unit(other)
+    def __radd__(self, other: Duration) -> Duration:
+        self._check_is_duration(other)
         self.nanos -= other.nanos
         return self
 
-    def __gt__(self, other) -> bool:
-        self._check_is_time_unit(other)
+    def __gt__(self, other: Duration) -> bool:
+        self._check_is_duration(other)
         return self.nanos > other.nanos
 
-    def __ge__(self, other) -> bool:
-        self._check_is_time_unit(other)
+    def __ge__(self, other: Duration) -> bool:
+        self._check_is_duration(other)
         return self.nanos >= other.nanos
 
-    def __lt__(self, other) -> bool:
-        self._check_is_time_unit(other)
+    def __lt__(self, other: Duration) -> bool:
+        self._check_is_duration(other)
         return self.nanos < other.nanos
 
-    def __le__(self, other) -> bool:
-        self._check_is_time_unit(other)
+    def __le__(self, other: Duration) -> bool:
+        self._check_is_duration(other)
         return self.nanos <= other.nanos
+
+    def __mod__(self, other: Duration) -> Duration:
+        self._check_is_duration(other)
+        return Duration(nanos=self.nanos % other.nanos)
+
+    def __truediv__(self, other: Union[Duration, int, float]) -> Duration:
+        divisor: Union[int, float]
+        other_type = type(other)
+        if other_type is Duration:
+            divisor = other.nanos
+        elif other_type is int or other_type is float:
+            divisor = other
+        else:
+            raise ValueError("Divisor should be either number or Duration but it was " + str(other))
+        return Duration(nanos=int(self.nanos / divisor))
 
     @property
     def is_positive(self) -> bool:

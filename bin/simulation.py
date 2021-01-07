@@ -1,19 +1,26 @@
 from copy import deepcopy
 from threading import Thread
+from time import time
 from typing import List
 
 from saga.generation import generate_saga
+from saga.simple_saga import SimpleSaga
 from src.log import LogContext
 from src.saga.coroutines_orchestrator import CoroutinesOrchestrator
 from src.saga.threaded_orchestrator import ThreadedOrchestrator
 from src.sys.operation_system import ProcessingMode
 from src.sys.time.duration import Duration
 
-sagas = [
+_sagas = [
     generate_saga(data_preservation=True)
     for _
     in range(4)
 ]
+
+
+def sagas_copy() -> List[SimpleSaga]:
+    return deepcopy(_sagas)
+
 
 overloaded_threads_orchestrator = ThreadedOrchestrator(cores_count=2, processing_mode=ProcessingMode.OVERLOADED_CORES)
 fixed_pool_threads_orchestrator = ThreadedOrchestrator(cores_count=2, processing_mode=ProcessingMode.FIXED_POOL_SIZE)
@@ -25,9 +32,9 @@ threads: List[Thread] = []
 def run_in_parallel(orchestrator, short_name: str):
     new_thread = Thread(
         name=short_name,
-        target=LogContext.run_logging(
+        target=lambda: LogContext.run_logging(
             log_name=short_name,
-            action=lambda: orchestrator.process(deepcopy(sagas)),
+            action=lambda: orchestrator.process(sagas_copy()),
             publish_report_every=Duration(millis=1)
         )
     )

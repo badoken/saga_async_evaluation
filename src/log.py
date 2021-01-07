@@ -3,8 +3,10 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Optional, Callable, TypeVar, Any, Tuple, List, NewType
+from typing import Dict, Optional, Callable, TypeVar, Any, Tuple, List, NewType, Set
 from uuid import UUID
+
+from termcolor import colored
 
 from src.sys.time.duration import Duration
 
@@ -68,12 +70,11 @@ class Report:
 
 
 class TimeLogger:
-
     def __init__(
             self,
             name: str,
             publish_report_every: Optional[Duration] = None,
-            report_publisher: Callable[[Report], None] = lambda report: print(str(report))
+            report_publisher: Callable[[Report], None] = lambda report: print_coloured(report)
     ):
         self._report_publisher = report_publisher
         self.name: str = name
@@ -203,3 +204,16 @@ class TimeLogger:
             for action
             in action_to_avg.keys()
         }
+
+
+_available_colours: Set[str] = {"grey", "red", "green", "yellow", "blue", "magenta", "cyan", "white"}
+_assigned_colours: Dict[str, str] = {}
+
+
+def print_coloured(report: Report):
+    colour = _assigned_colours.get(report.log_name)
+    if colour is None:
+        colour = _available_colours.pop()
+        _assigned_colours[report.log_name] = colour
+
+    print(colored(str(report), color=colour))

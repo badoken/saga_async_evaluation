@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import Any, Callable
+from typing import Any, Callable, Set
 from unittest.case import TestCase
 from unittest.mock import patch, Mock, ANY, call
 from uuid import uuid4
 
 from parameterized import parameterized
+from termcolor import colored
 
-from src.log import TimeLogger, LogContext, Report, Percentage, CoreNumber
+from src.log import TimeLogger, LogContext, Report, Percentage, CoreNumber, print_coloured
 from src.sys.time.duration import Duration
 
 
@@ -307,6 +308,52 @@ class TestTimeLogger(TestCase):
             logger.log_task_waiting(name=f"task1{uuid4()}", identifier=uuid4())
         else:
             self.fail("Unknown operation to apply")
+
+
+class TestPrintColored(TestCase):
+    @patch('src.log.colored')
+    @patch('src.log.print')
+    def test_print_coloured_should_print_a_report_with_a_different_name_in_a_different_color(self, pr, col):
+        # given
+        report1 = log_report_with_any_values("log1")
+        report2 = log_report_with_any_values("log2")
+
+        col.return_value = "expected"
+
+        # when
+        print_coloured(report1)
+        print_coloured(report2)
+
+        # then
+        pr.assert_has_calls([call("expected"), call("expected")])
+        self.assertEqual(2, len(col.call_args_list))
+
+        already_used_colors: Set[str] = set()
+        for report, params_map in col.call_args_list:
+            color = params_map["color"]
+            self.assertNotIn(color, already_used_colors)
+            already_used_colors.add(color)
+
+    @patch('src.log.colored')
+    @patch('builtins.print')
+    def test_print_colored_should_print_a_report_with_a_same_name_in_the_same_color(self, pr, col):
+        # given
+        report1 = log_report_with_any_values("log")
+        report2 = log_report_with_any_values("log")
+
+        col.return_value = "expected"
+
+        # when
+        print_coloured(report1)
+        print_coloured(report2)
+
+        # then
+        pr.assert_has_calls([call("expected"), call("expected")])
+        self.assertEqual(2, len(col.call_args_list))
+
+        report, params_map = col.call_args_list[0]
+        color = params_map["color"]
+        col.assert_has_calls([call(str(report1), color=color), call(str(report2), color=color)])
 
 
 def log_report_with_any_values(log_name: str):

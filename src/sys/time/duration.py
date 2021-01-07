@@ -17,9 +17,9 @@ class Duration:
     @staticmethod
     def rand_between(start: Duration, end: Duration) -> Duration:
         if start.is_negative:
-            raise ValueError("Start should be >= 0, but was " + str(start))
+            raise ValueError(f"Start should be >= 0, but was {start}")
         if start >= end:
-            raise ValueError("Start should be < end, but start was " + str(start) + " and end was " + str(end))
+            raise ValueError(f"Start should be < end, but start was {start} and end was {end}")
 
         return Duration(nanos=randint(start.nanos, end.nanos))
 
@@ -39,7 +39,7 @@ class Duration:
     def _check_is_duration(argument):
         argument_type = type(argument)
         if argument_type is not Duration:
-            raise TypeError("Expected to receive " + str(type(Duration)) + " but was " + str(argument_type))
+            raise TypeError(f"Expected to receive {type(Duration)} but was {argument_type}")
 
     def __add__(self, other: Duration) -> Duration:
         self._check_is_duration(other)
@@ -87,7 +87,7 @@ class Duration:
         elif other_type is int or other_type is float:
             divisor = other
         else:
-            raise ValueError("Divisor should be either number or Duration but it was " + str(other))
+            raise ValueError(f"Divisor should be either number or {type(Duration)} but it was {other}")
         return Duration(nanos=int(self.nanos / divisor))
 
     @property
@@ -131,23 +131,23 @@ class Duration:
 
         seconds = abs(self._hundreds(int(self.seconds)))
         if seconds != 0:
-            string_value += str(seconds) + "s"
+            string_value += f"{seconds}s"
 
         millis = abs(self._hundreds(int(self.millis)))
         if millis != 0:
-            string_value += str(millis) + "ms"
+            string_value += f"{millis}ms"
 
         micros = abs(self._hundreds(int(self.micros)))
         if micros != 0:
-            string_value += str(micros) + "μs"
+            string_value += f"{micros}μs"
 
         nanos = abs(self._hundreds(self.nanos))
         if nanos != 0:
-            string_value += str(nanos) + "ns"
+            string_value += f"{nanos}ns"
 
         if string_value == "":
             string_value = "zero"
-        return "🕒:" + string_value + ""
+        return f"🕒:{string_value}"
 
     @staticmethod
     def _hundreds(value: int):

@@ -116,7 +116,7 @@ class TestCore(TestCase):
         for nanoseconds in range(core._context_switch_cost.nanos + 5):
             self.assertFalse(
                 core.is_starving(),
-                msg="Should not be starving during context switch and after at " + str(Duration(nanos=nanoseconds))
+                msg=f"Should not be starving during context switch and after at {Duration(nanos=nanoseconds)}"
             )
             core.ticked(time_delta=TimeDelta(Duration(nanos=1)))
 
@@ -215,7 +215,7 @@ def create_threads(count: int, ticks: int) -> List[Thread]:
 
 
 def create_thread(ticks: int, identifier: int = 0) -> Thread:
-    thread: Mock[Thread] = Mock(name="SysThread" + str(identifier))
+    thread: Mock[Thread] = Mock(name=f"SysThread{identifier}")
 
     is_complete_answers: List[bool] = [False for _ in range(ticks)]
 

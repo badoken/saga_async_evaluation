@@ -56,7 +56,7 @@ class CoroutineThread(Thread):
         return self._name
 
     def _as_str(self):
-        return self._name + "<" + str(self._threads) + ">"
+        return f"{self._name}<{self._threads}>"
 
 
 class CoroutineThreadFactory:
@@ -68,4 +68,4 @@ class CoroutineThreadFactory:
             threads: List[Thread]
     ) -> CoroutineThread:
         self.last_id += 1
-        return CoroutineThread(threads=threads, name="coroutine" + str(self.last_id))
+        return CoroutineThread(threads=threads, name=f"coroutine{self.last_id}")

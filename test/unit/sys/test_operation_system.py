@@ -184,7 +184,7 @@ def core_factory() -> CoreFactory:
     mocks = []
     factory.mocks = mocks
     factory.new = lambda count, processing_interval: \
-        mocks if count is len(mocks) else ValueError("Count should be " + str(len(mocks)))
+        mocks if count is len(mocks) else ValueError(f"Count should be {len(mocks)}")
 
     return factory
 
@@ -198,7 +198,7 @@ def core_mock(factory: CoreFactory) -> Core:
 
 
 def sys_threads(count: int) -> List[Thread]:
-    return [sys_thread(name="thread " + str(i)) for i in range(count)]
+    return [sys_thread(name=f"thread {i}") for i in range(count)]
 
 
 def sys_thread(name: str = "thread") -> Thread:

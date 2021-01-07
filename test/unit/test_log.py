@@ -302,9 +302,9 @@ class TestTimeLogger(TestCase):
 
     def log_task(self, log_action_name: str, logger: TimeLogger):
         if log_action_name == "processing":
-            logger.log_task_processing(name="task" + str(uuid4()), identifier=uuid4())
+            logger.log_task_processing(name=f"task{uuid4()}", identifier=uuid4())
         elif log_action_name == "waiting":
-            logger.log_task_waiting(name="task1" + str(uuid4()), identifier=uuid4())
+            logger.log_task_waiting(name=f"task1{uuid4()}", identifier=uuid4())
         else:
             self.fail("Unknown operation to apply")
 

@@ -55,9 +55,7 @@ def given_system_factory_that_produces_mock(expected_cores: int, expected_mode: 
     factory.create = \
         lambda cores_count, processing_mode: system \
             if cores_count == expected_cores and processing_mode == expected_mode \
-            else ValueError("Expected "
-                            + str((expected_cores, expected_mode)) +
-                            " but was " + str((cores_count, processing_mode))
-                            )
+            else ValueError(f"Expected {(expected_cores, expected_mode)}" +
+                            f" but was {(cores_count, processing_mode)}")
 
     return factory, system

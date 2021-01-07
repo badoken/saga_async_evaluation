@@ -42,4 +42,4 @@ class SimpleSaga(Thread):
         return self._name
 
     def _as_str(self):
-        return self._name + "<" + str(self._tasks) + ">"
+        return f"{self._name}<{self._tasks}>"

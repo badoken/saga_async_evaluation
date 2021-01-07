@@ -155,7 +155,7 @@ class TestCoroutineThread(TestCase):
 
 
 def sys_threads(count: int) -> List[Thread]:
-    return [sys_thread(name="thread " + str(i + 1)) for i in range(count)]
+    return [sys_thread(name=f"thread {i + 1}") for i in range(count)]
 
 
 def sys_thread(name: str = "thread") -> Thread:

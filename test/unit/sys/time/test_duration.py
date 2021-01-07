@@ -111,12 +111,12 @@ class TestDuration(TestCase):
         except ValueError:
             if prohibited:
                 return
-            self.fail("Unexpected exception when started = " + str(start))
+            self.fail(f"Unexpected exception when started = {start}")
 
         if not prohibited:
             return
 
-        self.fail("Expected an exception to be thrown when started = " + str(start))
+        self.fail(f"Expected an exception to be thrown when started = {start}")
 
     @parameterized.expand([
         [30, 21],

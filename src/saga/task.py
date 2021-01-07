@@ -15,7 +15,7 @@ class SystemOperation:
 
     def __post_init__(self):
         if self.duration.is_zero or self.duration.is_negative:
-            raise ValueError('Duration of ' + str(self) + ' should be positive')
+            raise ValueError(f'Duration of {self} should be positive')
 
 
 class Task(TimeAffected):
@@ -37,7 +37,7 @@ class Task(TimeAffected):
         if self.is_complete():
             return
         if self.is_waiting():
-            raise ValueError(str(self) + " is waiting but ticked with " + str(time_delta))
+            raise ValueError(f"{self} is waiting but ticked with {time_delta}")
         if self._should_skip_same_time_delta_update(time_delta):
             return
 
@@ -49,7 +49,7 @@ class Task(TimeAffected):
         if self.is_complete():
             return
         if not self.is_waiting():
-            raise ValueError(str(self) + " is processing but triggered to wait " + str(time_delta))
+            raise ValueError(f"{self} is processing but triggered to wait {time_delta}")
         if self._should_skip_same_time_delta_update(time_delta):
             return
 
@@ -102,4 +102,4 @@ class Task(TimeAffected):
         return self.name
 
     def _as_string(self) -> str:
-        return self.name + "[" + str(self.identifier) + "]<" + str(self.operations) + ">"
+        return f"{self.name} [{self.identifier}]<{self.operations}>"

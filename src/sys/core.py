@@ -57,7 +57,7 @@ class Core(TimeAffected):
         return self._as_string()
 
     def _as_string(self):
-        return "Core(" + str(self.number) + ")"
+        return f"Core({self.number})"
 
     def _assign_first_from_pool_if_starving(self):
         if self._processing_slot is not None:

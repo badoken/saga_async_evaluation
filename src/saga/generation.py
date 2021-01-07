@@ -11,7 +11,7 @@ def _generate_command() -> Task:
     command_id = uuid4()
     request = SystemOperation(
         to_process=True,
-        name="HTTP request[" + str(command_id) + "]",
+        name=f"HTTP request[{command_id}]",
         duration=Duration.rand_between(
             start=Duration(micros=10),
             end=Duration(millis=60)
@@ -19,7 +19,7 @@ def _generate_command() -> Task:
     )
     wait = SystemOperation(
         to_process=True,
-        name="wait for HTTP response[" + str(command_id) + "]",
+        name=f"wait for HTTP response[{command_id}]",
         duration=Duration.rand_between(
             start=Duration(millis=20),
             end=Duration(millis=700)
@@ -27,7 +27,7 @@ def _generate_command() -> Task:
     )
     response = SystemOperation(
         to_process=True,
-        name="HTTP response[" + str(command_id) + "]",
+        name=f"HTTP response[{command_id}]",
         duration=Duration.rand_between(
             start=Duration(millis=10),
             end=Duration(millis=100)
@@ -35,7 +35,7 @@ def _generate_command() -> Task:
     )
     return Task(
         operations=[request, wait, response],
-        name="command[" + str(command_id) + "]"
+        name=f"command[{command_id}]"
     )
 
 
@@ -56,7 +56,7 @@ def _generate_fs_write() -> Task:
             for operation
             in block_write_operations
         ],
-        name="command[" + str(command_id) + "]"
+        name=f"command[{command_id}]"
     )
 
 
@@ -64,7 +64,7 @@ def _generate_fs_data_block_write(block_number: int, command_id: uuid4()) -> Lis
     return [
         SystemOperation(
             to_process=True,
-            name="Data block " + str(block_number) + " write [" + str(command_id) + "]",
+            name=f"Data block {block_number} write [{command_id}]",
             duration=Duration.rand_between(
                 start=Duration(micros=3),
                 end=Duration(micros=5)
@@ -72,7 +72,7 @@ def _generate_fs_data_block_write(block_number: int, command_id: uuid4()) -> Lis
         ),
         SystemOperation(
             to_process=False,
-            name="Data block " + str(block_number) + " wait [" + str(command_id) + "]",
+            name=f"Data block {block_number} wait [{command_id}]",
             duration=Duration.rand_between(
                 start=Duration(micros=8),
                 end=Duration(micros=11)
@@ -80,7 +80,7 @@ def _generate_fs_data_block_write(block_number: int, command_id: uuid4()) -> Lis
         ),
         SystemOperation(
             to_process=False,
-            name="Data block " + str(block_number) + " jbd2 wait [" + str(command_id) + "]",
+            name=f"Data block {block_number} jbd2 wait [{command_id}]",
             duration=Duration.rand_between(
                 start=Duration(micros=20),
                 end=Duration(micros=24)
@@ -104,5 +104,5 @@ def generate_saga(data_preservation: bool) -> SimpleSaga:
             for task
             in _generate_command_and_fs_operation(data_preservation)
         ],
-        name="saga" + str(uuid4())
+        name=f"saga{uuid4()}"
     )

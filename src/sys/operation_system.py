@@ -4,7 +4,6 @@ from typing import List
 from src.sys.processor import ProcessorFactory
 from src.sys.thread import Thread
 from src.sys.time.time import TimeDelta
-from src.log import LogContext
 from src.sys.time.duration import Duration
 from src.sys.time.constants import thread_timeslice
 
@@ -39,21 +38,11 @@ class OperationSystem:
         self._to_process_threads_queue.extend(threads)
         self._feed_starving_processors()
 
-    def tick(self, duration: Duration):
-        self._perform_processing(duration)
-        LogContext.shift_time()
-
-    def _perform_processing(self, duration):
+    def tick(self, time_delta: TimeDelta):
         if self.processing_mode is ProcessingMode.FIXED_POOL_SIZE:
             self._feed_starving_processors()
-        delta = TimeDelta(duration=duration)
         for processor in self._processors:
-            processor.ticked(time_delta=delta)
-        for thread in self._published:
-            for current_task in thread.get_current_tasks():
-                if not current_task.is_waiting():
-                    continue
-                current_task.wait(time_delta=delta)
+            processor.ticked(time_delta=time_delta)
 
     def _feed_starving_processors(self):
         if not len(self._to_process_threads_queue):
@@ -68,7 +57,8 @@ class OperationSystem:
             processor.assign(thread)
 
     def work_is_done(self) -> bool:
-        return len(self._to_process_threads_queue) == 0 and all([processor.is_starving() for processor in self._processors])
+        return len(self._to_process_threads_queue) == 0 and \
+               all([processor.is_starving() for processor in self._processors])
 
 
 class OperationSystemFactory:

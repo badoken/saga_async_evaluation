@@ -1,8 +1,8 @@
 from typing import Tuple, Callable, List
 from unittest import TestCase
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, call, patch, ANY
 
-from saga import orchestration
+from src.saga import orchestration
 from src.saga.coroutine_thread import CoroutineThread, CoroutineThreadFactory
 from src.saga.orchestration import ThreadedOrchestrator, CoroutinesOrchestrator
 from src.saga.simple_saga import SimpleSaga
@@ -10,10 +10,12 @@ from src.saga.task import Task, SystemOperation
 from src.sys.operation_system import OperationSystemFactory, OperationSystem, ProcessingMode
 from src.sys.thread import Thread
 from src.sys.time.duration import Duration
+from src.sys.time.time import TimeDelta
 
 
 class TestRunThreads(TestCase):
-    def test_run_threads(self):
+    @patch("src.saga.orchestration.LogContext.shift_time")
+    def test_run_threads_should_tick_os(self, shift_time_method: Callable[[], None]):
         # given
         os: Mock[OperationSystem] = Mock()
 
@@ -21,23 +23,64 @@ class TestRunThreads(TestCase):
         os.tick = Mock(side_effect=lambda duration: work_is_done_answers.pop(0))
         os.publish = Mock()
 
-        saga: Mock[SimpleSaga] = Mock()
+        thread: Mock[Thread] = Mock()
         os.work_is_done = lambda: next(iter(work_is_done_answers), True)
+        thread.get_current_tasks = lambda: []
 
         # when
-        result = orchestration._run_threads([saga], os)
+        result = orchestration._run_threads(threads=[thread], os=os)
 
         # then
-        os.publish.assert_called_once_with([saga])
+        os.publish.assert_called_once_with([thread])
         os.tick.assert_has_calls(
             calls=[
-                call.tick(Duration(nanos=1)),
-                call.tick(Duration(nanos=1)),
-                call.tick(Duration(nanos=1))
+                call.tick(TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
+                call.tick(TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
+                call.tick(TimeDelta(duration=Duration(nanos=1), identifier=ANY))
             ]
         )
-
         self.assertEqual(Duration(nanos=3), result)
+        self.assertEqual(3, shift_time_method.call_count)
+
+    @patch("src.saga.orchestration.LogContext.shift_time")
+    def test_run_threads_should_call_wait_if_task_is_waiting(self, shift_time_method: Callable[[], None]):
+        # given
+        os: Mock[OperationSystem] = Mock()
+
+        work_is_done_answers = [False for _ in range(2)]
+        os.tick = Mock(side_effect=lambda duration: work_is_done_answers.pop(0))
+        os.publish = Mock()
+
+        thread: Mock[Thread] = Mock()
+        os.work_is_done = lambda: next(iter(work_is_done_answers), True)
+
+        task_to_process: Mock[Task] = Mock()
+        task_to_process.is_waiting = lambda: False
+        task_to_wait: Mock[Task] = Mock()
+        task_to_wait.is_waiting = lambda: True
+        thread.get_current_tasks = lambda: [task_to_process, task_to_wait]
+
+        mock_manager = Mock()
+        mock_manager.attach_mock(os.tick, "tick")
+        mock_manager.attach_mock(task_to_wait.wait, "wait")
+
+        # when
+        result = orchestration._run_threads(threads=[thread], os=os)
+
+        # then
+        tick1_time_delta: TimeDelta = mock_manager.tick.call_args_list[0][0][0]
+        tick2_time_delta: TimeDelta = mock_manager.tick.call_args_list[1][0][0]
+        wait_time_delta: TimeDelta = mock_manager.wait.call_args_list[0][1]['time_delta']
+
+        self.assertEqual(tick1_time_delta, wait_time_delta)
+
+        self.assertEqual(tick1_time_delta.duration, tick2_time_delta.duration)
+        self.assertNotEqual(tick1_time_delta.identifier, tick2_time_delta.identifier)
+
+        os.publish.assert_called_once_with([thread])
+
+        self.assertEqual(Duration(nanos=2), result)
+        self.assertEqual(2, shift_time_method.call_count)
 
 
 class TestThreadedOrchestrator(TestCase):
@@ -62,7 +105,7 @@ class TestThreadedOrchestrator(TestCase):
         result = orchestrator.process(sagas=[saga])
 
         # then
-        run_threads_method.assert_called_once_with(sagas=[saga], os=os)
+        run_threads_method.assert_called_once_with(threads=[saga], os=os)
         self.assertEqual(Duration(micros=10), result)
 
 
@@ -96,7 +139,7 @@ class TestCoroutinesOrchestrator(TestCase):
         result = orchestrator.process(sagas=[saga1, saga2, saga3])
 
         # then
-        run_threads_method.assert_called_once_with(sagas=[coroutine1, coroutine2], os=os)
+        run_threads_method.assert_called_once_with(threads=[coroutine1, coroutine2], os=os)
         self.assertEqual(Duration(micros=10), result)
 
     @patch("src.saga.orchestration._run_threads")
@@ -125,7 +168,7 @@ class TestCoroutinesOrchestrator(TestCase):
         result = orchestrator.process(sagas=[saga1])
 
         # then
-        run_threads_method.assert_called_once_with(sagas=[coroutine], os=os)
+        run_threads_method.assert_called_once_with(threads=[coroutine], os=os)
         self.assertEqual(Duration(micros=10), result)
 
 

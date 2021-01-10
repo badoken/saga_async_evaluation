@@ -23,21 +23,21 @@ class OperationSystem:
     ):
         self.processing_mode = processing_mode
         self._to_process_threads_queue: List[Thread] = []
-        self._procs = proc_factory.new(count=processors_count, processing_interval=thread_timeslice())
+        self._processors = proc_factory.new(count=processors_count, processing_interval=thread_timeslice())
         self._published: List[Thread] = []
 
     def publish(self, threads: List[Thread]):
         self._published = threads
         if self.processing_mode is ProcessingMode.OVERLOADED_PROCESSORS:
-            processors_number = len(self._procs)
+            processors_number = len(self._processors)
             for i in range(len(threads)):
                 thread = threads[i]
-                processor = self._procs[i % processors_number]
+                processor = self._processors[i % processors_number]
                 processor.assign(thread)
             return
 
         self._to_process_threads_queue.extend(threads)
-        self._feed_starving_procs()
+        self._feed_starving_processors()
 
     def tick(self, duration: Duration):
         self._perform_processing(duration)
@@ -45,9 +45,9 @@ class OperationSystem:
 
     def _perform_processing(self, duration):
         if self.processing_mode is ProcessingMode.FIXED_POOL_SIZE:
-            self._feed_starving_procs()
+            self._feed_starving_processors()
         delta = TimeDelta(duration=duration)
-        for processor in self._procs:
+        for processor in self._processors:
             processor.ticked(time_delta=delta)
         for thread in self._published:
             for current_task in thread.get_current_tasks():
@@ -55,11 +55,11 @@ class OperationSystem:
                     continue
                 current_task.wait(time_delta=delta)
 
-    def _feed_starving_procs(self):
+    def _feed_starving_processors(self):
         if not len(self._to_process_threads_queue):
             return
 
-        for processor in self._procs:
+        for processor in self._processors:
             if not processor.is_starving():
                 continue
             if not len(self._to_process_threads_queue):
@@ -68,7 +68,7 @@ class OperationSystem:
             processor.assign(thread)
 
     def work_is_done(self) -> bool:
-        return len(self._to_process_threads_queue) == 0 and all([processor.is_starving() for processor in self._procs])
+        return len(self._to_process_threads_queue) == 0 and all([processor.is_starving() for processor in self._processors])
 
 
 class OperationSystemFactory:

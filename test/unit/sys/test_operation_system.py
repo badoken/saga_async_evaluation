@@ -53,7 +53,7 @@ class TestOperationSystem(TestCase):
         log_context_class.shift_time.assert_has_calls([call(), call()])
         shift_time_method.assert_has_calls([call(), call()])
 
-    def test_should_tick_procs_and_trigger_waiting_tasks(self):
+    def test_should_tick_processors_and_trigger_waiting_tasks(self):
         # given
         shift_time_method = given_shift_time_is_a_mock()
 
@@ -136,7 +136,7 @@ class TestOperationSystem(TestCase):
 
         shift_time_method.assert_has_calls([call(), call()])
 
-    def test_work_is_done_should_return_false_if_procs_are_not_starving(self):
+    def test_work_is_done_should_return_false_if_processors_are_not_starving(self):
         # given
         factory = proc_factory()
         processor1 = proc_mock(factory)
@@ -165,7 +165,7 @@ class TestOperationSystem(TestCase):
         # then
         self.assertFalse(result)
 
-    def test_work_is_done_should_return_true_if_there_are_no_tasks_in_the_pool_and_procs_are_starving(self):
+    def test_work_is_done_should_return_true_if_there_are_no_tasks_in_the_pool_and_processors_are_starving(self):
         # given
         factory = proc_factory()
         processor1 = proc_mock(factory)

@@ -14,7 +14,7 @@ class CoroutinesOrchestrator:
             system_factory: OperationSystemFactory = OperationSystemFactory(),
             coroutine_thread_factory: CoroutineThreadFactory = CoroutineThreadFactory()
     ):
-        self._procs_count = processors_number
+        self._processors_count = processors_number
         self._system = system_factory.create(
             processors_count=processors_number,
             processing_mode=ProcessingMode.FIXED_POOL_SIZE
@@ -24,8 +24,8 @@ class CoroutinesOrchestrator:
     def process(self, sagas: List[SimpleSaga]) -> Duration:
         coroutines: List[CoroutineThread] = []
 
-        sagas_bunch_size: int = int(math.ceil(float(len(sagas)) / self._procs_count))
-        for i in range(self._procs_count):
+        sagas_bunch_size: int = int(math.ceil(float(len(sagas)) / self._processors_count))
+        for i in range(self._processors_count):
             if not sagas:
                 break
 

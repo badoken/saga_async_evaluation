@@ -13,7 +13,7 @@ class TestThreadedOrchestrator(TestCase):
     def test_process(self):
         # given
         processors_factory, system = given_system_factory_that_produces_mock(
-            expected_procs=2,
+            expected_processors=2,
             expected_mode=ProcessingMode.OVERLOADED_PROCESSORS
         )
         orchestrator = ThreadedOrchestrator(
@@ -48,14 +48,14 @@ def create_task(name: str) -> Task:
     return task
 
 
-def given_system_factory_that_produces_mock(expected_procs: int, expected_mode: ProcessingMode) -> \
+def given_system_factory_that_produces_mock(expected_processors: int, expected_mode: ProcessingMode) -> \
         Tuple[OperationSystemFactory, OperationSystem]:
     factory = OperationSystemFactory()
     system = Mock()
     factory.create = \
         lambda processors_count, processing_mode: system \
-            if processors_count == expected_procs and processing_mode == expected_mode \
-            else ValueError(f"Expected {(expected_procs, expected_mode)}" +
+            if processors_count == expected_processors and processing_mode == expected_mode \
+            else ValueError(f"Expected {(expected_processors, expected_mode)}" +
                             f" but was {(processors_count, processing_mode)}")
 
     return factory, system

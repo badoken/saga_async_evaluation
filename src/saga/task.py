@@ -7,6 +7,7 @@ from src.log import LogContext
 from src.sys.time.duration import Duration
 
 
+# TODO: check if wait_is_finished check duration. Only if switched from another coroutine
 @dataclass
 class SystemOperation:
     to_process: bool

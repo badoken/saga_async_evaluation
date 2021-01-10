@@ -3,9 +3,8 @@ from typing import List
 
 from src.sys.processor import ProcessorFactory
 from src.sys.thread import Thread
-from src.sys.time.time import TimeDelta
-from src.sys.time.duration import Duration
 from src.sys.time.constants import thread_timeslice
+from src.sys.time.time import TimeDelta
 
 
 class ProcessingMode(Enum):
@@ -13,7 +12,7 @@ class ProcessingMode(Enum):
     OVERLOADED_PROCESSORS = 2
 
 
-class OperationSystem:
+class System:
     def __init__(
             self,
             processors_count: int,
@@ -61,11 +60,11 @@ class OperationSystem:
                all([processor.is_starving() for processor in self._processors])
 
 
-class OperationSystemFactory:
+class SystemFactory:
     # noinspection PyMethodMayBeStatic
     def create(
             self,
             processors_count: int,
             processing_mode: ProcessingMode
-    ) -> OperationSystem:
-        return OperationSystem(processors_count, processing_mode)
+    ) -> System:
+        return System(processors_count, processing_mode)

@@ -13,15 +13,15 @@ def _generate_command() -> Task:
         to_process=True,
         name=f"HTTP request[{command_id}]",
         duration=Duration.rand_between(
-            start=Duration(micros=10),
-            end=Duration(millis=60)
+            start=Duration(millis=1),
+            end=Duration(millis=7)
         )
     )
     wait = SystemOperation(
         to_process=False,
         name=f"wait for HTTP response[{command_id}]",
         duration=Duration.rand_between(
-            start=Duration(millis=20),
+            start=Duration(millis=50),
             end=Duration(millis=700)
         )
     )
@@ -29,8 +29,8 @@ def _generate_command() -> Task:
         to_process=True,
         name=f"HTTP response[{command_id}]",
         duration=Duration.rand_between(
-            start=Duration(millis=10),
-            end=Duration(millis=100)
+            start=Duration(millis=2),
+            end=Duration(millis=10)
         )
     )
     return Task(
@@ -40,7 +40,7 @@ def _generate_command() -> Task:
 
 
 def _generate_commands() -> List[Task]:
-    return [_generate_command() for _ in range(randint(3, 10))]
+    return [_generate_command() for _ in range(randint(3, 4))]
 
 
 def generate_saga() -> SimpleSaga:

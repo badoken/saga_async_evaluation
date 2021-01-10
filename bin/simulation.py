@@ -7,13 +7,13 @@ from saga.simple_saga import SimpleSaga
 from src.log import LogContext
 from saga.orchestration import CoroutinesOrchestrator
 from src.saga.orchestration import ThreadedOrchestrator
-from src.sys.operation_system import ProcessingMode
+from src.sys.system import ProcessingMode
 from src.sys.time.duration import Duration
 
 _sagas = [
     generate_saga()
     for _
-    in range(100)
+    in range(20)
 ]
 
 

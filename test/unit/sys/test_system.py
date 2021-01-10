@@ -2,21 +2,21 @@ from typing import List
 from unittest import TestCase
 from unittest.mock import Mock, call
 
-from src.sys.operation_system import OperationSystem, ProcessingMode
+from src.sys.system import System, ProcessingMode
 from src.sys.processor import Processor, ProcessorFactory
 from src.sys.thread import Thread
 from src.sys.time.duration import Duration
 from src.sys.time.time import TimeDelta
 
 
-class TestOperationSystem(TestCase):
+class TestSystem(TestCase):
     def test_should_publish_all_tasks_to_proc_if_in_overloaded_mode(self):
         # given
         factory = proc_factory()
         processor1 = proc_mock(factory)
         processor2 = proc_mock(factory)
 
-        system = OperationSystem(
+        system = System(
             processors_count=2,
             processing_mode=ProcessingMode.OVERLOADED_PROCESSORS,
             proc_factory=factory
@@ -44,8 +44,8 @@ class TestOperationSystem(TestCase):
         processor1 = proc_mock(factory)
         processor2 = proc_mock(factory)
 
-        system = OperationSystem(processors_count=2, processing_mode=ProcessingMode.FIXED_POOL_SIZE,
-                                 proc_factory=factory)
+        system = System(processors_count=2, processing_mode=ProcessingMode.FIXED_POOL_SIZE,
+                        proc_factory=factory)
 
         thread1, thread2, thread3, thread4 = sys_threads(4)
 
@@ -79,8 +79,8 @@ class TestOperationSystem(TestCase):
         factory = proc_factory()
         processor1 = proc_mock(factory)
         processor1.is_starving = lambda: False
-        system = OperationSystem(processors_count=1, processing_mode=ProcessingMode.FIXED_POOL_SIZE,
-                                 proc_factory=factory)
+        system = System(processors_count=1, processing_mode=ProcessingMode.FIXED_POOL_SIZE,
+                        proc_factory=factory)
 
         # when
         result = system.work_is_done()
@@ -93,8 +93,8 @@ class TestOperationSystem(TestCase):
         factory = proc_factory()
         processor1 = proc_mock(factory)
         processor1.is_starving = lambda: True
-        system = OperationSystem(processors_count=1, processing_mode=ProcessingMode.FIXED_POOL_SIZE,
-                                 proc_factory=factory)
+        system = System(processors_count=1, processing_mode=ProcessingMode.FIXED_POOL_SIZE,
+                        proc_factory=factory)
 
         threads = sys_threads(10)
 
@@ -110,8 +110,8 @@ class TestOperationSystem(TestCase):
         factory = proc_factory()
         processor1 = proc_mock(factory)
         processor1.is_starving = lambda: True
-        system = OperationSystem(processors_count=1, processing_mode=ProcessingMode.FIXED_POOL_SIZE,
-                                 proc_factory=factory)
+        system = System(processors_count=1, processing_mode=ProcessingMode.FIXED_POOL_SIZE,
+                        proc_factory=factory)
 
         # when
         result = system.work_is_done()

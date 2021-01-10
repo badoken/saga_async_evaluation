@@ -45,16 +45,16 @@ run_in_parallel(
     orchestrator=overloaded_threads_orchestrator,
     short_name="overloaded"
 )
-#
-# run_in_parallel(
-#     orchestrator=fixed_pool_threads_orchestrator,
-#     short_name="fixed_pool"
-# )
-#
-# run_in_parallel(
-#     orchestrator=coroutines_orchestrator,
-#     short_name="async"
-# )
+
+run_in_parallel(
+    orchestrator=fixed_pool_threads_orchestrator,
+    short_name="fixed_pool"
+)
+
+run_in_parallel(
+    orchestrator=coroutines_orchestrator,
+    short_name="async"
+)
 
 for thread in threads:
     thread.join()

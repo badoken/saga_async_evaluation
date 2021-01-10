@@ -1,41 +1,35 @@
-from typing import Tuple
+from typing import Tuple, Callable, List
 from unittest import TestCase
-from unittest.mock import Mock, call
+from unittest.mock import Mock, call, patch
 
+from saga import orchestration
 from src.saga.coroutine_thread import CoroutineThread, CoroutineThreadFactory
 from src.saga.orchestration import ThreadedOrchestrator, CoroutinesOrchestrator
 from src.saga.simple_saga import SimpleSaga
-from src.sys.operation_system import OperationSystemFactory, OperationSystem, ProcessingMode
 from src.saga.task import Task, SystemOperation
+from src.sys.operation_system import OperationSystemFactory, OperationSystem, ProcessingMode
+from src.sys.thread import Thread
 from src.sys.time.duration import Duration
 
 
-class TestThreadedOrchestrator(TestCase):
-    def test_process(self):
+class TestRunThreads(TestCase):
+    def test_run_threads(self):
         # given
-        processors_factory, system = given_system_factory_that_produces_mock(
-            expected_processors=2,
-            expected_mode=ProcessingMode.OVERLOADED_PROCESSORS
-        )
-        orchestrator = ThreadedOrchestrator(
-            processors_number=2,
-            processing_mode=ProcessingMode.OVERLOADED_PROCESSORS,
-            system_factory=processors_factory
-        )
+        os: Mock[OperationSystem] = Mock()
 
         work_is_done_answers = [False for _ in range(3)]
-        system.tick = Mock(side_effect=lambda duration: work_is_done_answers.pop(0))
-        system.publish = Mock()
+        os.tick = Mock(side_effect=lambda duration: work_is_done_answers.pop(0))
+        os.publish = Mock()
 
-        saga: SimpleSaga = Mock()
-        system.work_is_done = lambda: next(iter(work_is_done_answers), True)
+        saga: Mock[SimpleSaga] = Mock()
+        os.work_is_done = lambda: next(iter(work_is_done_answers), True)
 
         # when
-        orchestrator.process(sagas=[saga])
+        result = orchestration._run_threads([saga], os)
 
         # then
-        system.publish.assert_called_once_with([saga])
-        system.tick.assert_has_calls(
+        os.publish.assert_called_once_with([saga])
+        os.tick.assert_has_calls(
             calls=[
                 call.tick(Duration(nanos=1)),
                 call.tick(Duration(nanos=1)),
@@ -43,18 +37,52 @@ class TestThreadedOrchestrator(TestCase):
             ]
         )
 
+        self.assertEqual(Duration(nanos=3), result)
+
+
+class TestThreadedOrchestrator(TestCase):
+    @patch("src.saga.orchestration._run_threads")
+    def test_process(self, run_threads_method: Callable[[List[Thread], OperationSystem], Duration]):
+        # given
+        run_threads_method.return_value = Duration(micros=10)
+
+        processors_factory, os = given_os_factory_that_produces_mock(
+            expected_processors=2,
+            expected_mode=ProcessingMode.OVERLOADED_PROCESSORS
+        )
+        orchestrator = ThreadedOrchestrator(
+            processors_number=2,
+            processing_mode=ProcessingMode.OVERLOADED_PROCESSORS,
+            os_factory=processors_factory
+        )
+
+        saga: SimpleSaga = Mock()
+
+        # when
+        result = orchestrator.process(sagas=[saga])
+
+        # then
+        run_threads_method.assert_called_once_with(sagas=[saga], os=os)
+        self.assertEqual(Duration(micros=10), result)
+
 
 class TestCoroutinesOrchestrator(TestCase):
-    def test_process_when_the_number_of_sagas_is_greater_then_the_number_of_processors(self):
+    @patch("src.saga.orchestration._run_threads")
+    def test_process_when_the_number_of_sagas_is_greater_then_the_number_of_processors(
+            self,
+            run_threads_method: Callable[[List[Thread], OperationSystem], Duration]
+    ):
         # given
-        processors_factory, system = given_system_factory_that_produces_mock(
+        run_threads_method.return_value = Duration(micros=10)
+
+        processors_factory, os = given_os_factory_that_produces_mock(
             expected_processors=2,
             expected_mode=ProcessingMode.FIXED_POOL_SIZE
         )
         coroutine_factory: CoroutineThreadFactory = Mock()
         orchestrator = CoroutinesOrchestrator(
             processors_number=2,
-            system_factory=processors_factory,
+            os_factory=processors_factory,
             coroutine_thread_factory=coroutine_factory
         )
         saga1: SimpleSaga = Mock()
@@ -64,59 +92,41 @@ class TestCoroutinesOrchestrator(TestCase):
         coroutine1 = given_factory_will_return_coroutine_for(factory=coroutine_factory, sagas=[saga1, saga2])
         coroutine2 = given_factory_will_return_coroutine_for(factory=coroutine_factory, sagas=[saga3])
 
-        work_is_done_answers = [False for _ in range(3)]
-        system.tick = Mock(side_effect=lambda duration: work_is_done_answers.pop(0))
-        system.publish = Mock()
-
-        system.work_is_done = lambda: next(iter(work_is_done_answers), True)
-
         # when
-        orchestrator.process(sagas=[saga1, saga2, saga3])
+        result = orchestrator.process(sagas=[saga1, saga2, saga3])
 
         # then
-        system.publish.assert_called_once_with([coroutine1, coroutine2])
-        system.tick.assert_has_calls(
-            calls=[
-                call.tick(Duration(nanos=1)),
-                call.tick(Duration(nanos=1)),
-                call.tick(Duration(nanos=1))
-            ]
-        )
+        run_threads_method.assert_called_once_with(sagas=[coroutine1, coroutine2], os=os)
+        self.assertEqual(Duration(micros=10), result)
 
-    def test_process_when_the_number_of_sagas_is_lesser_then_the_number_of_processors(self):
+    @patch("src.saga.orchestration._run_threads")
+    def test_process_when_the_number_of_sagas_is_lesser_then_the_number_of_processors(
+            self,
+            run_threads_method: Callable[[List[Thread], OperationSystem], Duration]
+    ):
         # given
-        processors_factory, system = given_system_factory_that_produces_mock(
+        run_threads_method.return_value = Duration(micros=10)
+
+        processors_factory, os = given_os_factory_that_produces_mock(
             expected_processors=2,
             expected_mode=ProcessingMode.FIXED_POOL_SIZE
         )
         coroutine_factory: CoroutineThreadFactory = Mock()
         orchestrator = CoroutinesOrchestrator(
             processors_number=2,
-            system_factory=processors_factory,
+            os_factory=processors_factory,
             coroutine_thread_factory=coroutine_factory
         )
         saga1: SimpleSaga = Mock()
 
-        coroutine1 = given_factory_will_return_coroutine_for(factory=coroutine_factory, sagas=[saga1])
-
-        work_is_done_answers = [False for _ in range(3)]
-        system.tick = Mock(side_effect=lambda duration: work_is_done_answers.pop(0))
-        system.publish = Mock()
-
-        system.work_is_done = lambda: next(iter(work_is_done_answers), True)
+        coroutine = given_factory_will_return_coroutine_for(factory=coroutine_factory, sagas=[saga1])
 
         # when
-        orchestrator.process(sagas=[saga1])
+        result = orchestrator.process(sagas=[saga1])
 
         # then
-        system.publish.assert_called_once_with([coroutine1])
-        system.tick.assert_has_calls(
-            calls=[
-                call.tick(Duration(nanos=1)),
-                call.tick(Duration(nanos=1)),
-                call.tick(Duration(nanos=1))
-            ]
-        )
+        run_threads_method.assert_called_once_with(sagas=[coroutine], os=os)
+        self.assertEqual(Duration(micros=10), result)
 
 
 def given_factory_will_return_coroutine_for(factory: CoroutineThreadFactory, sagas: [SimpleSaga]) -> CoroutineThread:
@@ -133,14 +143,13 @@ def create_task(name: str) -> Task:
     return task
 
 
-def given_system_factory_that_produces_mock(expected_processors: int, expected_mode: ProcessingMode) -> \
+def given_os_factory_that_produces_mock(expected_processors: int, expected_mode: ProcessingMode) -> \
         Tuple[OperationSystemFactory, OperationSystem]:
     factory = OperationSystemFactory()
-    system = Mock()
+    os: OperationSystem = Mock()
     factory.create = \
-        lambda processors_count, processing_mode: system \
+        lambda processors_count, processing_mode: os \
             if processors_count == expected_processors and processing_mode == expected_mode \
-            else ValueError(f"Expected {(expected_processors, expected_mode)}" +
-                            f" but was {(processors_count, processing_mode)}")
+            else None
 
-    return factory, system
+    return factory, os

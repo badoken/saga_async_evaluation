@@ -11,16 +11,16 @@ from src.sys.time.duration import Duration
 
 
 class TestCoroutinesOrchestrator(TestCase):
-    def test_process_when_the_number_of_sagas_is_greater_then_the_number_of_cores(self):
+    def test_process_when_the_number_of_sagas_is_greater_then_the_number_of_procs(self):
         # given
-        cores_factory, system = given_system_factory_that_produces_mock(
-            expected_cores=2,
+        processors_factory, system = given_system_factory_that_produces_mock(
+            expected_procs=2,
             expected_mode=ProcessingMode.FIXED_POOL_SIZE
         )
         coroutine_factory: CoroutineThreadFactory = Mock()
         orchestrator = CoroutinesOrchestrator(
-            cores_count=2,
-            system_factory=cores_factory,
+            processors_number=2,
+            system_factory=processors_factory,
             coroutine_thread_factory=coroutine_factory
         )
         saga1: SimpleSaga = Mock()
@@ -49,16 +49,16 @@ class TestCoroutinesOrchestrator(TestCase):
             ]
         )
 
-    def test_process_when_the_number_of_sagas_is_lesser_then_the_number_of_cores(self):
+    def test_process_when_the_number_of_sagas_is_lesser_then_the_number_of_procs(self):
         # given
-        cores_factory, system = given_system_factory_that_produces_mock(
-            expected_cores=2,
+        processors_factory, system = given_system_factory_that_produces_mock(
+            expected_procs=2,
             expected_mode=ProcessingMode.FIXED_POOL_SIZE
         )
         coroutine_factory: CoroutineThreadFactory = Mock()
         orchestrator = CoroutinesOrchestrator(
-            cores_count=2,
-            system_factory=cores_factory,
+            processors_number=2,
+            system_factory=processors_factory,
             coroutine_thread_factory=coroutine_factory
         )
         saga1: SimpleSaga = Mock()
@@ -90,15 +90,15 @@ def create_task(name: str) -> Task:
     return task
 
 
-def given_system_factory_that_produces_mock(expected_cores: int, expected_mode: ProcessingMode) -> \
+def given_system_factory_that_produces_mock(expected_procs: int, expected_mode: ProcessingMode) -> \
         Tuple[OperationSystemFactory, OperationSystem]:
     factory = OperationSystemFactory()
     system = Mock()
     factory.create = \
-        lambda cores_count, processing_mode: system \
-            if cores_count == expected_cores and processing_mode == expected_mode \
-            else ValueError(f"Expected {(expected_cores, expected_mode)}" +
-                            f" but was {(cores_count, processing_mode)}")
+        lambda processors_count, processing_mode: system \
+            if processors_count == expected_procs and processing_mode == expected_mode \
+            else ValueError(f"Expected {(expected_procs, expected_mode)}" +
+                            f" but was {(processors_count, processing_mode)}")
 
     return factory, system
 

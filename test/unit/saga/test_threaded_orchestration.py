@@ -12,14 +12,14 @@ from src.sys.time.duration import Duration
 class TestThreadedOrchestrator(TestCase):
     def test_process(self):
         # given
-        cores_factory, system = given_system_factory_that_produces_mock(
-            expected_cores=2,
-            expected_mode=ProcessingMode.OVERLOADED_CORES
+        processors_factory, system = given_system_factory_that_produces_mock(
+            expected_procs=2,
+            expected_mode=ProcessingMode.OVERLOADED_PROCESSORS
         )
         orchestrator = ThreadedOrchestrator(
-            cores_count=2,
-            processing_mode=ProcessingMode.OVERLOADED_CORES,
-            system_factory=cores_factory
+            processors_number=2,
+            processing_mode=ProcessingMode.OVERLOADED_PROCESSORS,
+            system_factory=processors_factory
         )
 
         work_is_done_answers = [False for _ in range(3)]
@@ -48,14 +48,14 @@ def create_task(name: str) -> Task:
     return task
 
 
-def given_system_factory_that_produces_mock(expected_cores: int, expected_mode: ProcessingMode) -> \
+def given_system_factory_that_produces_mock(expected_procs: int, expected_mode: ProcessingMode) -> \
         Tuple[OperationSystemFactory, OperationSystem]:
     factory = OperationSystemFactory()
     system = Mock()
     factory.create = \
-        lambda cores_count, processing_mode: system \
-            if cores_count == expected_cores and processing_mode == expected_mode \
-            else ValueError(f"Expected {(expected_cores, expected_mode)}" +
-                            f" but was {(cores_count, processing_mode)}")
+        lambda processors_count, processing_mode: system \
+            if processors_count == expected_procs and processing_mode == expected_mode \
+            else ValueError(f"Expected {(expected_procs, expected_mode)}" +
+                            f" but was {(processors_count, processing_mode)}")
 
     return factory, system

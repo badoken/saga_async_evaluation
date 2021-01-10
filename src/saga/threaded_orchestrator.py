@@ -8,12 +8,12 @@ from src.sys.time.duration import Duration
 class ThreadedOrchestrator:
     def __init__(
             self,
-            cores_count: int,
+            processors_number: int,
             processing_mode: ProcessingMode,
             system_factory: OperationSystemFactory = OperationSystemFactory()
     ):
         self._system = system_factory.create(
-            cores_count=cores_count,
+            processors_count=processors_number,
             processing_mode=processing_mode
         )
 

@@ -45,7 +45,7 @@ class LogContext:
 
 
 Percentage = NewType('Percentage', float)
-CoreNumber = NewType('CoreNumber', int)
+ProcessorNumber = NewType('ProcessorNumber', int)
 
 
 class _Action(Enum):
@@ -59,14 +59,14 @@ class Report:
     log_name: str
     simulation_duration: Duration
 
-    avg_core_waiting: Duration
-    core_waiting_percentage: Percentage
+    avg_proc_waiting: Duration
+    proc_waiting_percentage: Percentage
 
-    avg_core_processing: Duration
-    core_processing_percentage: Percentage
+    avg_proc_processing: Duration
+    proc_processing_percentage: Percentage
 
-    avg_core_state_changing: Duration
-    core_state_changing_percentage: Percentage
+    avg_proc_state_changing: Duration
+    proc_state_changing_percentage: Percentage
 
 
 class TimeLogger:
@@ -81,9 +81,9 @@ class TimeLogger:
         self._publish_report_every: Duration = publish_report_every
         self._duration: Duration = Duration(nanos=1)
 
-        self._ticked_core: Optional[CoreNumber] = None
-        self._core_to_last_action_duration: Dict[CoreNumber, Tuple[_Action, Duration]] = {}
-        self._core_and_action_to_sum_duration: Dict[Tuple[CoreNumber, _Action], Tuple[Duration, int]] = {}
+        self._ticked_processor: Optional[ProcessorNumber] = None
+        self._proc_to_last_action_duration: Dict[ProcessorNumber, Tuple[_Action, Duration]] = {}
+        self._proc_and_action_to_sum_duration: Dict[Tuple[ProcessorNumber, _Action], Tuple[Duration, int]] = {}
 
     def close(self):
         self._account_last_actions()
@@ -92,7 +92,7 @@ class TimeLogger:
         self._report_publisher(report)
 
     def shift_time(self):
-        if self._ticked_core is not None:
+        if self._ticked_processor is not None:
             self._handle_log_action(action=_Action.STATE_CHANGING)
 
         self._duration = self._duration + Duration(nanos=1)
@@ -104,11 +104,11 @@ class TimeLogger:
             report = self._generate_report()
             self._report_publisher(report)
 
-    def log_core_tick(self, core_number: CoreNumber):
-        if self._ticked_core is not None:
+    def log_processor_tick(self, proc_number: ProcessorNumber):
+        if self._ticked_processor is not None:
             self._handle_log_action(action=_Action.STATE_CHANGING)
 
-        self._ticked_core = core_number
+        self._ticked_processor = proc_number
 
     def log_task_processing(self, name: str, identifier: UUID):
         self._log_task(identifier=identifier, action=_Action.PROCESSING)
@@ -117,18 +117,18 @@ class TimeLogger:
         self._log_task(identifier=identifier, action=_Action.WAITING)
 
     def _log_task(self, identifier: Any, action: _Action):
-        if self._ticked_core is None:
-            raise ValueError("Task ticked when core is not ticked before. "
-                             "Or the task ticked more then once / a few tasks ticked after a core is ticked")
+        if self._ticked_processor is None:
+            raise ValueError("Task ticked when processor is not ticked before. "
+                             "Or the task ticked more then once / a few tasks ticked after a processor is ticked")
         self._handle_log_action(action)
 
     def _handle_log_action(self, action: _Action):
-        core_number = self._ticked_core
-        self._ticked_core = None
+        proc_number = self._ticked_processor
+        self._ticked_processor = None
 
-        last_action_and_its_duration = self._core_to_last_action_duration.get(core_number)
+        last_action_and_its_duration = self._proc_to_last_action_duration.get(proc_number)
         if last_action_and_its_duration is None:
-            self._core_to_last_action_duration[core_number] = action, Duration(nanos=1)
+            self._proc_to_last_action_duration[proc_number] = action, Duration(nanos=1)
             return
 
         (last_action, last_action_duration) = last_action_and_its_duration
@@ -137,54 +137,54 @@ class TimeLogger:
             last_action_duration += Duration(nanos=1)
             return
 
-        self._core_to_last_action_duration[core_number] = action, Duration(nanos=1)
+        self._proc_to_last_action_duration[proc_number] = action, Duration(nanos=1)
 
-        last_action_sum_duration, last_action_times = self._core_and_action_to_sum_duration.get(
-            (core_number, last_action),
+        last_action_sum_duration, last_action_times = self._proc_and_action_to_sum_duration.get(
+            (proc_number, last_action),
             (Duration(nanos=0), 1)
         )
-        self._core_and_action_to_sum_duration[core_number, last_action] = \
+        self._proc_and_action_to_sum_duration[proc_number, last_action] = \
             last_action_sum_duration + last_action_duration, last_action_times + 1
 
     def _account_last_actions(self):
-        for core_number, (action, duration) in self._core_to_last_action_duration.items():
-            action_sum_duration, action_times = self._core_and_action_to_sum_duration.get(
-                (core_number, action),
+        for processor_number, (action, duration) in self._proc_to_last_action_duration.items():
+            action_sum_duration, action_times = self._proc_and_action_to_sum_duration.get(
+                (processor_number, action),
                 (Duration(nanos=0), 0)
             )
-            self._core_and_action_to_sum_duration[core_number, action] = \
+            self._proc_and_action_to_sum_duration[processor_number, action] = \
                 action_sum_duration + duration, action_times + 1
-        self._core_to_last_action_duration.clear()
+        self._proc_to_last_action_duration.clear()
 
     def _generate_report(self) -> Report:
-        core_work_ratio = self._core_work_ratio()
+        processor_work_ratio = self._proc_work_ratio()
 
         return Report(
             log_name=self.name,
             simulation_duration=self._duration,
-            avg_core_waiting=self._avg_time_per_action(_Action.WAITING),
-            core_waiting_percentage=core_work_ratio.get(_Action.WAITING, 0),
-            avg_core_processing=self._avg_time_per_action(_Action.PROCESSING),
-            core_processing_percentage=core_work_ratio.get(_Action.PROCESSING, 0),
-            avg_core_state_changing=self._avg_time_per_action(_Action.STATE_CHANGING),
-            core_state_changing_percentage=core_work_ratio.get(_Action.STATE_CHANGING, 0)
+            avg_proc_waiting=self._avg_time_per_action(_Action.WAITING),
+            proc_waiting_percentage=processor_work_ratio.get(_Action.WAITING, 0),
+            avg_proc_processing=self._avg_time_per_action(_Action.PROCESSING),
+            proc_processing_percentage=processor_work_ratio.get(_Action.PROCESSING, 0),
+            avg_proc_state_changing=self._avg_time_per_action(_Action.STATE_CHANGING),
+            proc_state_changing_percentage=processor_work_ratio.get(_Action.STATE_CHANGING, 0)
         )
 
     def _avg_time_per_action(self, action: _Action) -> Duration:
-        avg_action_duration_per_core: List[Duration] = [
+        avg_action_duration_per_proc: List[Duration] = [
             sum_duration / times
-            for (core_num, act), (sum_duration, times)
-            in self._core_and_action_to_sum_duration.items()
+            for (proc_num, act), (sum_duration, times)
+            in self._proc_and_action_to_sum_duration.items()
             if act == action
         ]
-        if not avg_action_duration_per_core:
+        if not avg_action_duration_per_proc:
             return Duration.zero()
 
-        return Duration.avg(avg_action_duration_per_core)
+        return Duration.avg(avg_action_duration_per_proc)
 
-    def _core_work_ratio(self) -> Dict[_Action, Percentage]:
+    def _proc_work_ratio(self) -> Dict[_Action, Percentage]:
         action_to_durations: Dict[_Action, List[Duration]] = {}
-        for (core_num, action), (sum_duration, times) in self._core_and_action_to_sum_duration.items():
+        for (proc_num, action), (sum_duration, times) in self._proc_and_action_to_sum_duration.items():
             action_to_durations.setdefault(action, [])
             action_to_durations[action].append(sum_duration)
 

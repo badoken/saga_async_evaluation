@@ -21,9 +21,9 @@ def sagas_copy() -> List[SimpleSaga]:
     return deepcopy(_sagas)
 
 
-overloaded_threads_orchestrator = ThreadedOrchestrator(cores_count=2, processing_mode=ProcessingMode.OVERLOADED_CORES)
-fixed_pool_threads_orchestrator = ThreadedOrchestrator(cores_count=2, processing_mode=ProcessingMode.FIXED_POOL_SIZE)
-coroutines_orchestrator = CoroutinesOrchestrator(cores_count=2)
+overloaded_threads_orchestrator = ThreadedOrchestrator(processors_number=2, processing_mode=ProcessingMode.OVERLOADED_PROCESSORS)
+fixed_pool_threads_orchestrator = ThreadedOrchestrator(processors_number=2, processing_mode=ProcessingMode.FIXED_POOL_SIZE)
+coroutines_orchestrator = CoroutinesOrchestrator(processors_number=2)
 
 threads: List[Thread] = []
 

@@ -10,13 +10,13 @@ from src.sys.time.duration import Duration
 class CoroutinesOrchestrator:
     def __init__(
             self,
-            cores_count: int,
+            processors_number: int,
             system_factory: OperationSystemFactory = OperationSystemFactory(),
             coroutine_thread_factory: CoroutineThreadFactory = CoroutineThreadFactory()
     ):
-        self._cores_count = cores_count
+        self._procs_count = processors_number
         self._system = system_factory.create(
-            cores_count=cores_count,
+            processors_count=processors_number,
             processing_mode=ProcessingMode.FIXED_POOL_SIZE
         )
         self._coroutine_factory = coroutine_thread_factory
@@ -24,8 +24,8 @@ class CoroutinesOrchestrator:
     def process(self, sagas: List[SimpleSaga]) -> Duration:
         coroutines: List[CoroutineThread] = []
 
-        sagas_bunch_size: int = int(math.ceil(float(len(sagas)) / self._cores_count))
-        for i in range(self._cores_count):
+        sagas_bunch_size: int = int(math.ceil(float(len(sagas)) / self._procs_count))
+        for i in range(self._procs_count):
             if not sagas:
                 break
 

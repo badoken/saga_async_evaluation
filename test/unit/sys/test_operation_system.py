@@ -24,8 +24,8 @@ class TestOperationSystem(TestCase):
 
         thread1, thread2, thread3, thread4 = sys_threads(4)
 
-        delta1 = TimeDelta(Duration(nanos=1))
-        delta2 = TimeDelta(Duration(nanos=1))
+        delta1 = TimeDelta(Duration(micros=1))
+        delta2 = TimeDelta(Duration(micros=1))
 
         # when
         system.publish([thread1, thread2, thread3, thread4])
@@ -50,7 +50,7 @@ class TestOperationSystem(TestCase):
         thread1, thread2, thread3, thread4 = sys_threads(4)
 
         # when
-        delta1 = TimeDelta(Duration(nanos=1))
+        delta1 = TimeDelta(Duration(micros=1))
         system.publish([thread1, thread2, thread3, thread4])
         system.tick(time_delta=delta1)
 
@@ -63,7 +63,7 @@ class TestOperationSystem(TestCase):
         reset_proc_mock(processor2)
 
         # when
-        delta2 = TimeDelta(Duration(nanos=1))
+        delta2 = TimeDelta(Duration(micros=1))
         processor1.is_starving = lambda: True
         processor2.is_starving = lambda: True
         system.tick(time_delta=delta2)

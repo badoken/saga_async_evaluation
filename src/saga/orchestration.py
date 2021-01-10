@@ -13,7 +13,7 @@ from src.sys.time.time import TimeDelta
 def _run_threads(threads: List[Thread], os: OperationSystem) -> Duration:
     os.publish(threads)
     result = Duration.zero()
-    tick_length = Duration(nanos=1)
+    tick_length = Duration(micros=1)
 
     while not os.work_is_done():
         delta = TimeDelta(duration=tick_length)

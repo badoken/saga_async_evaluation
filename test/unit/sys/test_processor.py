@@ -25,14 +25,14 @@ class TestProcessor(TestCase):
 
         # when
         processor.assign(thread)
-        processor.ticked(time_delta=TimeDelta(Duration(nanos=1)))
-        processor.ticked(time_delta=TimeDelta(Duration(nanos=1)))
-        processor.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+        processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
+        processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
+        processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
 
         # then
         thread.ticked.assert_has_calls([
-            call.ticked(TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
-            call.ticked(TimeDelta(duration=Duration(nanos=1), identifier=ANY))
+            call.ticked(TimeDelta(duration=Duration(micros=1), identifier=ANY)),
+            call.ticked(TimeDelta(duration=Duration(micros=1), identifier=ANY))
         ])
         logger.log_processor_tick.assert_has_calls([
             call(proc_number=processor.number),
@@ -52,9 +52,9 @@ class TestProcessor(TestCase):
 
         # then
         self.assertFalse(processor.is_starving())
-        processor.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+        processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
         self.assertFalse(processor.is_starving())
-        processor.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+        processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
         self.assertTrue(processor.is_starving())
 
         logger.log_processor_tick.assert_has_calls([
@@ -74,7 +74,7 @@ class TestProcessor(TestCase):
 
         # then
         self.assertFalse(processor.is_starving())
-        processor.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+        processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
         self.assertTrue(processor.is_starving())
 
         logger.log_processor_tick.assert_called_once_with(proc_number=processor.number)
@@ -90,7 +90,7 @@ class TestProcessor(TestCase):
         thread2 = create_thread(ticks=1)
 
         # when
-        processor.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+        processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
         processor.assign(thread2)
 
         # then
@@ -104,26 +104,26 @@ class TestProcessor(TestCase):
 
         thread1 = create_thread(ticks=20)
         thread2 = create_thread(ticks=20)
-        processor = Processor(processing_interval=Duration(nanos=5))
+        processor = Processor(processing_interval=Duration(micros=5))
         processor.assign(thread1)
         processor.assign(thread2)
 
         # when
-        processor.ticked(TimeDelta(Duration(nanos=5)))
+        processor.ticked(TimeDelta(Duration(micros=5)))
 
         # then
-        for nanoseconds in range(processor._context_switch_cost.nanos + 5):
+        for microseconds in range(processor._context_switch_cost.micros + 5):
             self.assertFalse(
                 processor.is_starving(),
-                msg=f"Should not be starving during context switch and after at {Duration(nanos=nanoseconds)}"
+                msg=f"Should not be starving during context switch and after at {Duration(micros=microseconds)}"
             )
-            processor.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+            processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
 
         logger.log_processor_tick.assert_has_calls(
             [
                 call(proc_number=processor.number)
                 for _
-                in range(processor._context_switch_cost.nanos + 6)
+                in range(processor._context_switch_cost.micros + 6)
             ]
         )
 
@@ -137,8 +137,8 @@ class TestProcessor(TestCase):
 
         # when
         for microsecond in range(10):
-            processor.ticked(TimeDelta(Duration(nanos=1)))
-            processor.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+            processor.ticked(TimeDelta(Duration(micros=1)))
+            processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
 
         # then
         self.assertTrue(
@@ -159,18 +159,18 @@ class TestProcessor(TestCase):
 
         thread1 = create_thread(ticks=20)
         thread2 = create_thread(ticks=20)
-        processor = Processor(processing_interval=Duration(nanos=6), context_switch_cost=Duration(nanos=2))
+        processor = Processor(processing_interval=Duration(micros=6), context_switch_cost=Duration(micros=2))
 
         # when
         processor.assign(thread1)
         processor.assign(thread2)
 
         for tick_number in range(10):
-            processor.ticked(time_delta=TimeDelta(Duration(nanos=3)))
+            processor.ticked(time_delta=TimeDelta(Duration(micros=3)))
 
         # then
-        self.assert_only_calls(called(times=4, duration=Duration(nanos=3)), thread1.ticked)
-        self.assert_only_calls(called(times=3, duration=Duration(nanos=3)), thread2.ticked)
+        self.assert_only_calls(called(times=4, duration=Duration(micros=3)), thread1.ticked)
+        self.assert_only_calls(called(times=3, duration=Duration(micros=3)), thread2.ticked)
         logger.log_processor_tick.assert_has_calls(
             [
                 call(proc_number=processor.number)
@@ -185,18 +185,18 @@ class TestProcessor(TestCase):
 
         thread1 = create_thread(ticks=20)
         thread2 = create_thread(ticks=20)
-        processor = Processor(processing_interval=Duration(nanos=6), context_switch_cost=Duration(nanos=2))
+        processor = Processor(processing_interval=Duration(micros=6), context_switch_cost=Duration(micros=2))
 
         # when
         processor.assign(thread1)
         processor.assign(thread2)
 
         for tick_number in range(10):
-            processor.ticked(time_delta=TimeDelta(Duration(nanos=4)))
+            processor.ticked(time_delta=TimeDelta(Duration(micros=4)))
 
         # then
-        self.assert_only_calls(called(times=4, duration=Duration(nanos=4)), thread1.ticked)
-        self.assert_only_calls(called(times=3, duration=Duration(nanos=4)), thread2.ticked)
+        self.assert_only_calls(called(times=4, duration=Duration(micros=4)), thread1.ticked)
+        self.assert_only_calls(called(times=3, duration=Duration(micros=4)), thread2.ticked)
         logger.log_processor_tick.assert_has_calls(
             [
                 call(proc_number=processor.number)
@@ -226,7 +226,7 @@ def create_thread(ticks: int, identifier: int = 0) -> Thread:
     return thread
 
 
-def called(times: int, duration: Duration = Duration(nanos=1)) -> List[Any]:
+def called(times: int, duration: Duration = Duration(micros=1)) -> List[Any]:
     return [call(TimeDelta(duration=duration, identifier=ANY)) for _ in range(times)]
 
 

@@ -18,7 +18,7 @@ def _generate_command() -> Task:
         )
     )
     wait = SystemOperation(
-        to_process=True,
+        to_process=False,
         name=f"wait for HTTP response[{command_id}]",
         duration=Duration.rand_between(
             start=Duration(millis=20),
@@ -39,70 +39,12 @@ def _generate_command() -> Task:
     )
 
 
-def _generate_fs_write() -> Task:
-    command_id = uuid4()
-
-    return Task(
-        operations=[
-            operation
-
-            for block_write_operations
-            in [
-                _generate_fs_data_block_write(block_number=i, command_id=command_id)
-                for i
-                in range(randint(1, 4))
-            ]
-
-            for operation
-            in block_write_operations
-        ],
-        name=f"command[{command_id}]"
-    )
+def _generate_commands() -> List[Task]:
+    return [_generate_command() for _ in range(randint(3, 10))]
 
 
-def _generate_fs_data_block_write(block_number: int, command_id: uuid4()) -> List[SystemOperation]:
-    return [
-        SystemOperation(
-            to_process=True,
-            name=f"Data block {block_number} write [{command_id}]",
-            duration=Duration.rand_between(
-                start=Duration(micros=3),
-                end=Duration(micros=5)
-            )
-        ),
-        SystemOperation(
-            to_process=False,
-            name=f"Data block {block_number} wait [{command_id}]",
-            duration=Duration.rand_between(
-                start=Duration(micros=8),
-                end=Duration(micros=11)
-            )
-        ),
-        SystemOperation(
-            to_process=False,
-            name=f"Data block {block_number} jbd2 wait [{command_id}]",
-            duration=Duration.rand_between(
-                start=Duration(micros=20),
-                end=Duration(micros=24)
-            )
-        )
-    ]
-
-
-def _generate_command_and_fs_operation(data_preservation: bool) -> List[Task]:
-    result: List[Task] = [_generate_command()]
-    # TODO data amount dependency between these two
-    if data_preservation:
-        result.append(_generate_fs_write())
-    return result
-
-
-def generate_saga(data_preservation: bool) -> SimpleSaga:
+def generate_saga() -> SimpleSaga:
     return SimpleSaga(
-        tasks=[
-            task
-            for task
-            in _generate_command_and_fs_operation(data_preservation)
-        ],
+        tasks=_generate_commands(),
         name=f"saga{uuid4()}"
     )

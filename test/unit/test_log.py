@@ -6,8 +6,6 @@ from unittest.case import TestCase
 from unittest.mock import patch, Mock, ANY, call
 from uuid import uuid4
 
-from parameterized import parameterized
-
 from src.log import TimeLogger, LogContext, Report, Percentage, ProcessorNumber, print_coloured
 from src.sys.time.duration import Duration
 
@@ -67,26 +65,15 @@ def log_processor_tick_and_return(proc_number: ProcessorNumber, to_return: Any) 
 
 
 class TestTimeLogger(TestCase):
-    @parameterized.expand([
-        ["processing", "processing"],
-        ["processing", "waiting"],
-        ["waiting", "processing"],
-        ["waiting", "waiting"]
-    ])
-    def test_task_trigger_cannot_happen_after_another_task_trigger(
-            self,
-            already_applied_log_action,
-            log_action_to_apply
-
-    ):
+    def test_task_trigger_cannot_happen_after_another_task_trigger(self):
         # given
         logger = TimeLogger(name="logger")
         logger.log_processor_tick(proc_number=3)
-        self.log_task(log_action_name=already_applied_log_action, logger=logger)
+        self.log_random_task_processing(logger)
 
         # when
         try:
-            self.log_task(log_action_name=log_action_to_apply, logger=logger)
+            self.log_random_task_processing(logger)
 
         # then
         except ValueError:
@@ -94,28 +81,17 @@ class TestTimeLogger(TestCase):
 
         self.fail("Had to throw an exception")
 
-    @parameterized.expand([
-        ["processing", "processing"],
-        ["processing", "waiting"],
-        ["waiting", "processing"],
-        ["waiting", "waiting"]
-    ])
-    def test_task_trigger_should_be_able_to_happen_after_another_task_trigger_and_proc_ticked_in_between(
-            self,
-            already_applied_log_action,
-            log_action_to_apply
-
-    ):
+    def test_task_trigger_should_be_able_to_happen_after_another_task_trigger_and_proc_ticked_in_between(self    ):
         # given
         logger = TimeLogger(name="logger")
         logger.log_processor_tick(proc_number=3)
-        self.log_task(log_action_name=already_applied_log_action, logger=logger)
+        self.log_random_task_processing(logger)
 
         # when
         logger.shift_time()
         logger.log_processor_tick(proc_number=3)
         try:
-            self.log_task(log_action_name=log_action_to_apply, logger=logger)
+            self.log_random_task_processing(logger=logger)
 
         # then
         except ValueError:
@@ -128,20 +104,19 @@ class TestTimeLogger(TestCase):
 
         # when
         logger.log_processor_tick(proc_number=5)
-        self.log_task(log_action_name="processing", logger=logger)
+        self.log_random_task_processing(logger)
         logger.log_processor_tick(proc_number=3)
-        self.log_task(log_action_name="waiting", logger=logger)
-        logger.shift_time()
-
-        logger.log_processor_tick(proc_number=3)
-        self.log_task(log_action_name="waiting", logger=logger)
         logger.shift_time()
 
         logger.log_processor_tick(proc_number=3)
         logger.shift_time()
 
         logger.log_processor_tick(proc_number=3)
-        self.log_task(log_action_name="waiting", logger=logger)
+        self.log_random_task_processing(logger)
+        logger.shift_time()
+
+        logger.log_processor_tick(proc_number=3)
+        self.log_random_task_processing(logger)
 
         logger.close()
 
@@ -149,42 +124,7 @@ class TestTimeLogger(TestCase):
         report_publisher.assert_called_once_with(
             replace(
                 log_report_with_any_values(log_name="logger"),
-                proc_processing_percentage=Percentage(20),
-                proc_waiting_percentage=Percentage(60),
-                proc_state_changing_percentage=Percentage(20)
-            )
-        )
-
-    def test_close_should_report_the_average_time_of_proc_waiting(self):
-        # given
-        report_publisher: Callable[[Report], None] = Mock()
-        logger = TimeLogger(name="logger", report_publisher=report_publisher)
-
-        # when
-        logger.log_processor_tick(proc_number=5)
-        self.log_task(log_action_name="waiting", logger=logger)
-        logger.log_processor_tick(proc_number=3)
-        self.log_task(log_action_name="waiting", logger=logger)
-        logger.shift_time()
-
-        logger.log_processor_tick(proc_number=3)
-        self.log_task(log_action_name="waiting", logger=logger)
-        logger.shift_time()
-
-        logger.log_processor_tick(proc_number=3)
-        self.log_task(log_action_name="waiting", logger=logger)
-        logger.shift_time()
-
-        logger.log_processor_tick(proc_number=3)
-        self.log_task(log_action_name="waiting", logger=logger)
-
-        logger.close()
-
-        # then
-        report_publisher.assert_called_once_with(
-            replace(
-                log_report_with_any_values(log_name="logger"),
-                avg_proc_waiting=Duration(nanos=2)
+                proc_processing_percentage=Percentage(75)
             )
         )
 
@@ -195,21 +135,21 @@ class TestTimeLogger(TestCase):
 
         # when
         logger.log_processor_tick(proc_number=5)
-        self.log_task(log_action_name="processing", logger=logger)
+        self.log_random_task_processing(logger)
         logger.log_processor_tick(proc_number=3)
-        self.log_task(log_action_name="processing", logger=logger)
+        self.log_random_task_processing(logger)
         logger.shift_time()
 
         logger.log_processor_tick(proc_number=3)
-        self.log_task(log_action_name="processing", logger=logger)
+        self.log_random_task_processing(logger)
         logger.shift_time()
 
         logger.log_processor_tick(proc_number=3)
-        self.log_task(log_action_name="processing", logger=logger)
+        self.log_random_task_processing(logger)
         logger.shift_time()
 
         logger.log_processor_tick(proc_number=3)
-        self.log_task(log_action_name="processing", logger=logger)
+        self.log_random_task_processing(logger)
 
         logger.close()
 
@@ -217,11 +157,11 @@ class TestTimeLogger(TestCase):
         report_publisher.assert_called_once_with(
             replace(
                 log_report_with_any_values(log_name="logger"),
-                avg_proc_processing=Duration(nanos=2)
+                avg_proc_processing=Duration(micros=2)
             )
         )
 
-    def test_close_should_report_the_average_time_of_proc_state_changing(self):
+    def test_close_should_report_the_average_time_of_proc_waiting(self):
         # given
         report_publisher: Callable[[Report], None] = Mock()
         logger = TimeLogger(name="logger", report_publisher=report_publisher)
@@ -245,7 +185,7 @@ class TestTimeLogger(TestCase):
         report_publisher.assert_called_once_with(
             replace(
                 log_report_with_any_values(log_name="logger"),
-                avg_proc_state_changing=Duration(nanos=2)
+                avg_proc_waiting=Duration(micros=2)
             )
         )
 
@@ -256,9 +196,9 @@ class TestTimeLogger(TestCase):
 
         # when
         logger.log_processor_tick(proc_number=5)
-        self.log_task(log_action_name="processing", logger=logger)
+        self.log_random_task_processing(logger)
         logger.log_processor_tick(proc_number=3)
-        self.log_task(log_action_name="waiting", logger=logger)
+        self.log_random_task_processing(logger)
         logger.shift_time()
 
         logger.log_processor_tick(proc_number=3)
@@ -268,14 +208,14 @@ class TestTimeLogger(TestCase):
         report_publisher.assert_called_once_with(
             replace(
                 log_report_with_any_values(log_name="logger"),
-                simulation_duration=Duration(nanos=2)
+                simulation_duration=Duration(micros=2)
             )
         )
 
     def test_publish_report_every_should_publish_report_each_duration_passed(self):
         # given
         report_publisher: Callable[[Report], None] = Mock()
-        logger = TimeLogger(name="logger", publish_report_every=Duration(nanos=2), report_publisher=report_publisher)
+        logger = TimeLogger(name="logger", publish_report_every=Duration(micros=2), report_publisher=report_publisher)
 
         # when
         logger.log_processor_tick(proc_number=5)
@@ -292,21 +232,16 @@ class TestTimeLogger(TestCase):
         report_publisher.assert_has_calls(calls=[
             call(replace(
                 log_report_with_any_values(log_name="logger"),
-                simulation_duration=Duration(nanos=2)
+                simulation_duration=Duration(micros=2)
             )),
             call(replace(
                 log_report_with_any_values(log_name="logger"),
-                simulation_duration=Duration(nanos=3)
+                simulation_duration=Duration(micros=3)
             ))
         ])
 
-    def log_task(self, log_action_name: str, logger: TimeLogger):
-        if log_action_name == "processing":
-            logger.log_task_processing(name=f"task{uuid4()}", identifier=uuid4())
-        elif log_action_name == "waiting":
-            logger.log_task_waiting(name=f"task1{uuid4()}", identifier=uuid4())
-        else:
-            self.fail("Unknown operation to apply")
+    def log_random_task_processing(self, logger: TimeLogger):
+        logger.log_task_processing(name=f"task{uuid4()}", identifier=uuid4())
 
 
 class TestPrintColored(TestCase):
@@ -360,9 +295,6 @@ def log_report_with_any_values(log_name: str):
         log_name=log_name,
         simulation_duration=ANY,
         avg_proc_waiting=ANY,
-        proc_waiting_percentage=ANY,
         avg_proc_processing=ANY,
-        proc_processing_percentage=ANY,
-        avg_proc_state_changing=ANY,
-        proc_state_changing_percentage=ANY
+        proc_processing_percentage=ANY
     )

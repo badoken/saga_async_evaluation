@@ -10,7 +10,7 @@ from src.saga.task import SystemOperation, Task
 
 class TestSystemOperation(TestCase):
     def test_post_init_should_fail_if_there_is_non_positive_duration(self):
-        for duration in [Duration(nanos=-5), Duration(nanos=-1), Duration(nanos=0)]:
+        for duration in [Duration(micros=-5), Duration(micros=-1), Duration(micros=0)]:
             # when
             try:
                 SystemOperation(to_process=True, name="1", duration=duration)
@@ -38,8 +38,8 @@ class TestTask(TestCase):
     def test_is_complete(self):
         # given
         logger = given_logging_context_that_provides_logger()
-        operation1 = SystemOperation(to_process=True, name="1", duration=Duration(nanos=2))
-        operation2 = SystemOperation(to_process=False, name="2", duration=Duration(nanos=1))
+        operation1 = SystemOperation(to_process=True, name="1", duration=Duration(micros=2))
+        operation2 = SystemOperation(to_process=False, name="2", duration=Duration(micros=1))
 
         task = Task(operations=[operation1, operation2], name="task")
 
@@ -47,13 +47,13 @@ class TestTask(TestCase):
         self.assertFalse(task.is_complete())
 
         # 1
-        task.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+        task.ticked(time_delta=TimeDelta(Duration(micros=1)))
         self.assertFalse(task.is_complete())
-        task.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+        task.ticked(time_delta=TimeDelta(Duration(micros=1)))
         self.assertFalse(task.is_complete())
 
         # 2
-        task.wait(time_delta=TimeDelta(Duration(nanos=1)))
+        task.wait(time_delta=TimeDelta(Duration(micros=1)))
         self.assertTrue(task.is_complete())
         self.assertTrue(task.is_complete())
 
@@ -65,11 +65,11 @@ class TestTask(TestCase):
     def test_is_complete_with_long_tick(self):
         # given
         logger = given_logging_context_that_provides_logger()
-        operation = SystemOperation(to_process=True, name="1", duration=Duration(nanos=2))
+        operation = SystemOperation(to_process=True, name="1", duration=Duration(micros=2))
         task = Task(operations=[operation], name="task")
 
         # when
-        task.ticked(time_delta=TimeDelta(Duration(nanos=2)))
+        task.ticked(time_delta=TimeDelta(Duration(micros=2)))
 
         # then
         self.assertTrue(task.is_complete())
@@ -79,12 +79,12 @@ class TestTask(TestCase):
     def test_tick_should_throw_error_if_waiting(self):
         # given
         logger = given_logging_context_that_provides_logger()
-        operation = SystemOperation(to_process=False, name="not to process", duration=Duration(nanos=1))
+        operation = SystemOperation(to_process=False, name="not to process", duration=Duration(micros=1))
         task = Task(operations=[operation])
 
         # when
         try:
-            task.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+            task.ticked(time_delta=TimeDelta(Duration(micros=1)))
         # then
         except ValueError:
             logger.log_task_processing.assert_not_called()
@@ -95,22 +95,22 @@ class TestTask(TestCase):
     def test_wait_should_throw_error_if_processing(self):
         # given
         logger = given_logging_context_that_provides_logger()
-        operation = SystemOperation(to_process=True, name="not to process", duration=Duration(nanos=1))
+        operation = SystemOperation(to_process=True, name="not to process", duration=Duration(micros=1))
         task = Task(operations=[operation])
 
         # when
         try:
-            task.wait(time_delta=TimeDelta(Duration(nanos=1)))
+            task.wait(time_delta=TimeDelta(Duration(micros=1)))
         # then
         except ValueError:
-            logger.log_task_waiting.assert_not_called()
+            logger.log_task_processing.assert_not_called()
             return
 
         self.fail("Should throw exception")
 
     def test_is_waiting_when_first_operation_is_not_to_process(self):
         # given
-        operation = SystemOperation(to_process=False, name="not to process", duration=Duration(nanos=1))
+        operation = SystemOperation(to_process=False, name="not to process", duration=Duration(micros=1))
 
         task = Task(operations=[operation])
 
@@ -156,7 +156,6 @@ class TestTask(TestCase):
         self.assertTrue(task.is_complete())
 
         logger.log_task_processing.assert_called_once_with(name="task", identifier=task.identifier)
-        logger.log_task_waiting.assert_called_once_with(name="task", identifier=task.identifier)
 
     def test_ticked_should_be_skipped_if_time_delta_is_same_as_in_last_wait(self):
         # given
@@ -181,7 +180,6 @@ class TestTask(TestCase):
         self.assertTrue(task.is_waiting())
         self.assertTrue(task.is_complete())
 
-        logger.log_task_waiting.assert_called_once_with(name="task", identifier=task.identifier)
         logger.log_task_processing.assert_called_once_with(name="task", identifier=task.identifier)
 
     def test_is_waiting(self):
@@ -240,12 +238,6 @@ class TestTask(TestCase):
         logger.log_task_processing.assert_has_calls([
             call(name="task", identifier=task.identifier),
             call(name="task", identifier=task.identifier),
-            call(name="task", identifier=task.identifier),
-            call(name="task", identifier=task.identifier),
-            call(name="task", identifier=task.identifier),
-            call(name="task", identifier=task.identifier)
-        ])
-        logger.log_task_waiting.assert_has_calls([
             call(name="task", identifier=task.identifier),
             call(name="task", identifier=task.identifier),
             call(name="task", identifier=task.identifier),

@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Optional, Callable, TypeVar, Any, Tuple, List, NewType, Set
+from typing import Dict, Optional, Callable, TypeVar, Any, Tuple, List, NewType, Set, Collection
 from uuid import UUID
 
 from termcolor import colored
@@ -51,7 +51,6 @@ ProcessorNumber = NewType('ProcessorNumber', int)
 class _Action(Enum):
     WAITING = 1
     PROCESSING = 2
-    STATE_CHANGING = 3
 
 
 @dataclass
@@ -59,14 +58,10 @@ class Report:
     log_name: str
     simulation_duration: Duration
 
-    avg_proc_waiting: Duration
-    proc_waiting_percentage: Percentage
-
     avg_proc_processing: Duration
     proc_processing_percentage: Percentage
 
-    avg_proc_state_changing: Duration
-    proc_state_changing_percentage: Percentage
+    avg_proc_waiting: Duration
 
 
 class TimeLogger:
@@ -79,7 +74,7 @@ class TimeLogger:
         self._report_publisher = report_publisher
         self.name: str = name
         self._publish_report_every: Duration = publish_report_every
-        self._duration: Duration = Duration(nanos=1)
+        self._duration: Duration = Duration(micros=1)
 
         self._ticked_processor: Optional[ProcessorNumber] = None
         self._proc_to_last_action_duration: Dict[ProcessorNumber, Tuple[_Action, Duration]] = {}
@@ -93,9 +88,9 @@ class TimeLogger:
 
     def shift_time(self):
         if self._ticked_processor is not None:
-            self._handle_log_action(action=_Action.STATE_CHANGING)
+            self._handle_log_action(action=_Action.WAITING)
 
-        self._duration = self._duration + Duration(nanos=1)
+        self._duration = self._duration + Duration(micros=1)
 
         if self._publish_report_every is not None and \
                 (self._duration % self._publish_report_every) == Duration.zero():
@@ -106,15 +101,12 @@ class TimeLogger:
 
     def log_processor_tick(self, proc_number: ProcessorNumber):
         if self._ticked_processor is not None:
-            self._handle_log_action(action=_Action.STATE_CHANGING)
+            self._handle_log_action(action=_Action.WAITING)
 
         self._ticked_processor = proc_number
 
     def log_task_processing(self, name: str, identifier: UUID):
         self._log_task(identifier=identifier, action=_Action.PROCESSING)
-
-    def log_task_waiting(self, name: str, identifier: UUID):
-        self._log_task(identifier=identifier, action=_Action.WAITING)
 
     def _log_task(self, identifier: Any, action: _Action):
         if self._ticked_processor is None:
@@ -128,20 +120,20 @@ class TimeLogger:
 
         last_action_and_its_duration = self._proc_to_last_action_duration.get(proc_number)
         if last_action_and_its_duration is None:
-            self._proc_to_last_action_duration[proc_number] = action, Duration(nanos=1)
+            self._proc_to_last_action_duration[proc_number] = action, Duration(micros=1)
             return
 
         (last_action, last_action_duration) = last_action_and_its_duration
 
         if last_action == action:
-            last_action_duration += Duration(nanos=1)
+            last_action_duration += Duration(micros=1)
             return
 
-        self._proc_to_last_action_duration[proc_number] = action, Duration(nanos=1)
+        self._proc_to_last_action_duration[proc_number] = action, Duration(micros=1)
 
         last_action_sum_duration, last_action_times = self._proc_and_action_to_sum_duration.get(
             (proc_number, last_action),
-            (Duration(nanos=0), 1)
+            (Duration(micros=0), 1)
         )
         self._proc_and_action_to_sum_duration[proc_number, last_action] = \
             last_action_sum_duration + last_action_duration, last_action_times + 1
@@ -150,24 +142,21 @@ class TimeLogger:
         for processor_number, (action, duration) in self._proc_to_last_action_duration.items():
             action_sum_duration, action_times = self._proc_and_action_to_sum_duration.get(
                 (processor_number, action),
-                (Duration(nanos=0), 0)
+                (Duration(micros=0), 0)
             )
             self._proc_and_action_to_sum_duration[processor_number, action] = \
                 action_sum_duration + duration, action_times + 1
         self._proc_to_last_action_duration.clear()
 
     def _generate_report(self) -> Report:
-        processor_work_ratio = self._proc_work_ratio()
+        processor_work_ratio = self._processors_work_ratio()
 
         return Report(
             log_name=self.name,
             simulation_duration=self._duration,
-            avg_proc_waiting=self._avg_time_per_action(_Action.WAITING),
-            proc_waiting_percentage=processor_work_ratio.get(_Action.WAITING, 0),
             avg_proc_processing=self._avg_time_per_action(_Action.PROCESSING),
             proc_processing_percentage=processor_work_ratio.get(_Action.PROCESSING, 0),
-            avg_proc_state_changing=self._avg_time_per_action(_Action.STATE_CHANGING),
-            proc_state_changing_percentage=processor_work_ratio.get(_Action.STATE_CHANGING, 0)
+            avg_proc_waiting=self._avg_time_per_action(_Action.WAITING)
         )
 
     def _avg_time_per_action(self, action: _Action) -> Duration:
@@ -182,28 +171,32 @@ class TimeLogger:
 
         return Duration.avg(avg_action_duration_per_proc)
 
-    def _proc_work_ratio(self) -> Dict[_Action, Percentage]:
-        action_to_durations: Dict[_Action, List[Duration]] = {}
-        for (proc_num, action), (sum_duration, times) in self._proc_and_action_to_sum_duration.items():
-            action_to_durations.setdefault(action, [])
-            action_to_durations[action].append(sum_duration)
+    def _processors_work_ratio(self) -> Dict[_Action, Percentage]:
+        processor_to_processing_percentage: Dict[ProcessorNumber, Percentage] = {}
+        processor_numbers = set([proc_num for proc_num, action in self._proc_and_action_to_sum_duration.keys()])
+        for processor_number in processor_numbers:
+            waiting_duration, _ = self._proc_and_action_to_sum_duration.get((processor_number, _Action.WAITING), (Duration.zero(), 0))
+            processing_duration, _ = self._proc_and_action_to_sum_duration.get((processor_number, _Action.PROCESSING), (Duration.zero(), 0))
+            if waiting_duration.is_zero:
+                if processing_duration.is_zero:
+                    processor_to_processing_percentage[processor_number] = Percentage(0)
+                    continue
+                processor_to_processing_percentage[processor_number] = Percentage(100)
+                continue
+            processor_to_processing_percentage[processor_number] = Percentage(processing_duration.micros * 100 / (processing_duration + waiting_duration).micros)
 
-        action_to_avg: Dict[_Action, Duration] = {
-            action: Duration.avg(durations)
-            for action, durations
-            in action_to_durations.items()
-        }
-
-        hundred_percent_value: Duration = Duration.sum(action_to_avg.values())
-
-        def sum_duration_as_percentage(act: _Action) -> Percentage:
-            return Percentage(action_to_avg[act].nanos * 100 / hundred_percent_value.nanos)
-
+        overall_processing_percentage = self._avg_percentage(processor_to_processing_percentage.values())
         return {
-            action: sum_duration_as_percentage(action)
-            for action
-            in action_to_avg.keys()
+            _Action.PROCESSING: overall_processing_percentage,
+            _Action.WAITING: Percentage(100 - overall_processing_percentage)
         }
+
+    @staticmethod
+    def _avg_percentage(percentages: Collection[Percentage]) -> Percentage:
+        sum_of_all = 0
+        for percentage in percentages:
+            sum_of_all += percentage
+        return Percentage(sum_of_all / len(percentages))
 
 
 _available_colours: Set[str] = {"grey", "red", "green", "yellow", "blue", "magenta", "cyan", "white"}

@@ -34,12 +34,12 @@ class TestRunThreads(TestCase):
         os.publish.assert_called_once_with([thread])
         os.tick.assert_has_calls(
             calls=[
-                call.tick(TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
-                call.tick(TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
-                call.tick(TimeDelta(duration=Duration(nanos=1), identifier=ANY))
+                call.tick(TimeDelta(duration=Duration(micros=1), identifier=ANY)),
+                call.tick(TimeDelta(duration=Duration(micros=1), identifier=ANY)),
+                call.tick(TimeDelta(duration=Duration(micros=1), identifier=ANY))
             ]
         )
-        self.assertEqual(Duration(nanos=3), result)
+        self.assertEqual(Duration(micros=3), result)
         self.assertEqual(3, shift_time_method.call_count)
 
     @patch("src.saga.orchestration.LogContext.shift_time")
@@ -79,7 +79,7 @@ class TestRunThreads(TestCase):
 
         os.publish.assert_called_once_with([thread])
 
-        self.assertEqual(Duration(nanos=2), result)
+        self.assertEqual(Duration(micros=2), result)
         self.assertEqual(2, shift_time_method.call_count)
 
 

@@ -53,7 +53,6 @@ class Task(TimeAffected):
         if self._should_skip_same_time_delta_update(time_delta):
             return
 
-        LogContext.logger().log_task_waiting(name=self.name, identifier=self.identifier)
         self._increment_time_waiting(time_delta)
         self._handle_if_operation_finished()
 

@@ -6,4 +6,4 @@ def threads_context_switch_overhead() -> Duration:
 
 
 def thread_timeslice() -> Duration:
-    return Duration(micros=100)  # https://github.com/torvalds/linux/blob/master/include/linux/sched/rt.h RR_TIMESLICE
+    return Duration(millis=100)  # https://github.com/torvalds/linux/blob/master/include/linux/sched/rt.h RR_TIMESLICE

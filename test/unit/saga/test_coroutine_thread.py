@@ -36,15 +36,15 @@ class TestCoroutineThread(TestCase):
 
         # when
         for _ in range(4):
-            coroutine.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+            coroutine.ticked(time_delta=TimeDelta(Duration(micros=1)))
 
         # then
         mock_manager.assert_has_calls(
             calls=[
-                call.ticked1(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
-                call.ticked1(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
-                call.ticked1(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
-                call.ticked2(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY))
+                call.ticked1(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY)),
+                call.ticked1(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY)),
+                call.ticked1(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY)),
+                call.ticked2(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY))
             ]
         )
 
@@ -62,7 +62,7 @@ class TestCoroutineThread(TestCase):
 
         # when
         for _ in range(4):
-            coroutine.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+            coroutine.ticked(time_delta=TimeDelta(Duration(micros=1)))
 
         # then
         call.ticked1.assert_not_called()
@@ -81,15 +81,15 @@ class TestCoroutineThread(TestCase):
 
         # when
         for _ in range(4):
-            coroutine.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+            coroutine.ticked(time_delta=TimeDelta(Duration(micros=1)))
 
         # then
         mock_manager.assert_has_calls(
             calls=[
-                call.ticked1(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
-                call.ticked1(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
-                call.ticked1(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY)),
-                call.ticked2(time_delta=TimeDelta(duration=Duration(nanos=1), identifier=ANY))
+                call.ticked1(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY)),
+                call.ticked1(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY)),
+                call.ticked1(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY)),
+                call.ticked2(time_delta=TimeDelta(duration=Duration(micros=1), identifier=ANY))
             ]
         )
 
@@ -106,7 +106,7 @@ class TestCoroutineThread(TestCase):
 
         # when
         for _ in range(4):
-            coroutine.ticked(time_delta=TimeDelta(Duration(nanos=1)))
+            coroutine.ticked(time_delta=TimeDelta(Duration(micros=1)))
 
         # then
         call.ticked1.assert_not_called()

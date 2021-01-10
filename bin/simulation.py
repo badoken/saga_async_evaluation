@@ -11,9 +11,9 @@ from src.sys.operation_system import ProcessingMode
 from src.sys.time.duration import Duration
 
 _sagas = [
-    generate_saga(data_preservation=True)
+    generate_saga()
     for _
-    in range(4)
+    in range(100)
 ]
 
 
@@ -34,7 +34,7 @@ def run_in_parallel(orchestrator, short_name: str):
         target=lambda: LogContext.run_logging(
             log_name=short_name,
             action=lambda: orchestrator.process(sagas_copy()),
-            publish_report_every=Duration(millis=1)
+            publish_report_every=Duration(millis=100)
         )
     )
     threads.append(new_thread)
@@ -45,16 +45,16 @@ run_in_parallel(
     orchestrator=overloaded_threads_orchestrator,
     short_name="overloaded"
 )
-
-run_in_parallel(
-    orchestrator=fixed_pool_threads_orchestrator,
-    short_name="fixed_pool"
-)
-
-run_in_parallel(
-    orchestrator=coroutines_orchestrator,
-    short_name="async"
-)
+#
+# run_in_parallel(
+#     orchestrator=fixed_pool_threads_orchestrator,
+#     short_name="fixed_pool"
+# )
+#
+# run_in_parallel(
+#     orchestrator=coroutines_orchestrator,
+#     short_name="async"
+# )
 
 for thread in threads:
     thread.join()

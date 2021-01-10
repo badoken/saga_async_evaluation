@@ -4,18 +4,19 @@ from src.sys.thread import Thread
 from src.sys.time.time import TimeAffected, TimeDelta
 from src.log import LogContext
 from src.sys.time.duration import Duration
+from src.sys.time.constants import threads_context_switch_overhead
 
-
+# TODO: processor
 class Core(TimeAffected):
     def __init__(
             self,
             processing_interval: Duration,
             core_number: int = -1,
-            context_switch_cost: Duration = Duration(nanos=20)
+            context_switch_cost: Duration = threads_context_switch_overhead()
     ):
         self.processing_interval = processing_interval
         self.number = core_number
-        self._context_switch_cost = context_switch_cost  # TODO: constants or to thread
+        self._context_switch_cost = context_switch_cost
         self._threads_pool: List[Thread] = []
         self._processing_slot: Optional[Thread] = None
         self._current_thread_processing_duration: Duration = Duration.zero()

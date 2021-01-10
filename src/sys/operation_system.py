@@ -6,6 +6,7 @@ from src.sys.thread import Thread
 from src.sys.time.time import TimeDelta
 from src.log import LogContext
 from src.sys.time.duration import Duration
+from src.sys.time.constants import thread_timeslice
 
 
 class ProcessingMode(Enum):
@@ -22,7 +23,7 @@ class OperationSystem:
     ):
         self.processing_mode = processing_mode
         self._to_process_threads_queue: List[Thread] = []
-        self._cores = core_factory.new(count=cores_count, processing_interval=Duration(micros=60))
+        self._cores = core_factory.new(count=cores_count, processing_interval=thread_timeslice())
         self._published: List[Thread] = []
 
     def publish(self, threads: List[Thread]):

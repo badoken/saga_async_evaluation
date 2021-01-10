@@ -155,7 +155,7 @@ class TestDuration(TestCase):
         actual = dividend / divisor
 
         # then
-        self.assertEquals(quotient, actual)
+        self.assertEqual(quotient, actual)
 
     @parameterized.expand([
         [Duration(nanos=5), Duration(nanos=15), Duration(nanos=5)],
@@ -171,7 +171,7 @@ class TestDuration(TestCase):
         actual = dividend % divisor
 
         # then
-        self.assertEquals(quotient, actual)
+        self.assertEqual(quotient, actual)
 
     @parameterized.expand([
         [[Duration(nanos=5), Duration(nanos=15)], Duration(nanos=20)],
@@ -187,7 +187,7 @@ class TestDuration(TestCase):
         actual = Duration.sum(values)
 
         # then
-        self.assertEquals(expected, actual)
+        self.assertEqual(expected, actual)
 
     @parameterized.expand([
         [[Duration(nanos=5), Duration(nanos=15)], Duration(nanos=10)],
@@ -203,4 +203,4 @@ class TestDuration(TestCase):
         actual = Duration.avg(values)
 
         # then
-        self.assertEquals(expected, actual)
+        self.assertEqual(expected, actual)

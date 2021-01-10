@@ -20,7 +20,3 @@ class TimeAffected(ABC):
     def ticked(self, time_delta: TimeDelta): pass
 
 
-class Constants:
-    @staticmethod
-    def core() -> Duration:
-        pass  # TODO

@@ -180,7 +180,7 @@ class TestDuration(TestCase):
             expected: Any
     ):
         # when
-        actual = Duration.sum(values)
+        actual = Duration.sum(*values)
 
         # then
         self.assertEqual(expected, actual)
@@ -196,7 +196,7 @@ class TestDuration(TestCase):
             expected: Any
     ):
         # when
-        actual = Duration.avg(values)
+        actual = Duration.avg(*values)
 
         # then
         self.assertEqual(expected, actual)

@@ -4,7 +4,7 @@ from src.sys.thread import Executable
 from src.sys.time.time import TimeAffected, TimeDelta
 from src.log import LogContext
 from src.sys.time.duration import Duration
-from src.sys.time.constants import threads_context_switch_overhead
+from src.sys.time.constants import thread_context_switch_overhead
 
 
 class Processor(TimeAffected):
@@ -12,7 +12,7 @@ class Processor(TimeAffected):
             self,
             processing_interval: Duration,
             proc_number: int = -1,
-            context_switch_cost: Duration = threads_context_switch_overhead()
+            context_switch_cost: Duration = thread_context_switch_overhead()
     ):
         self.processing_interval = processing_interval
         self.number = proc_number

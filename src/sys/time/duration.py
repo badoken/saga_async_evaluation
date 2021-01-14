@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import reduce
 from random import randint
-from typing import Union, Collection
+from typing import Union
 
 
 class Duration:
@@ -23,22 +23,16 @@ class Duration:
         return Duration(micros=randint(start.micros, end.micros))
 
     @staticmethod
-    def avg(durations: Collection[Duration]) -> Duration:
+    def avg(*durations: Duration) -> Duration:
         if not durations:
             return Duration.zero()
-        return Duration.sum(durations) / len(durations)
+        return Duration.sum(*durations) / len(durations)
 
     @staticmethod
-    def sum(durations: Collection[Duration]) -> Duration:
+    def sum(*durations: Duration) -> Duration:
         if not durations:
             return Duration.zero()
         return reduce(lambda a, b: a + b, durations)
-
-    @staticmethod
-    def _check_is_duration(argument):
-        argument_type = type(argument)
-        if argument_type is not Duration:
-            raise TypeError(f"Expected to receive {type(Duration)} but was {argument_type}")
 
     def __add__(self, other: Duration) -> Duration:
         self._check_is_duration(other)
@@ -143,3 +137,9 @@ class Duration:
     @staticmethod
     def _hundreds(value: int):
         return value % (1000 if value > 0 else -1000)
+
+    @staticmethod
+    def _check_is_duration(argument):
+        argument_type = type(argument)
+        if argument_type is not Duration:
+            raise TypeError(f"Expected to receive {type(Duration)} but was {argument_type}")

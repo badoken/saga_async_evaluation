@@ -169,7 +169,7 @@ class TimeLogger:
         if not avg_action_duration_per_proc:
             return Duration.zero()
 
-        return Duration.avg(avg_action_duration_per_proc)
+        return Duration.avg(*avg_action_duration_per_proc)
 
     def _processors_work_ratio(self) -> Dict[_Action, Percentage]:
         processor_to_processing_percentage: Dict[ProcessorNumber, Percentage] = {}

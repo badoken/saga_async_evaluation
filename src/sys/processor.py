@@ -1,6 +1,6 @@
 from typing import List, Optional, NewType
 
-from src.sys.thread import Thread
+from src.sys.thread import Executable
 from src.sys.time.time import TimeAffected, TimeDelta
 from src.log import LogContext
 from src.sys.time.duration import Duration
@@ -17,13 +17,13 @@ class Processor(TimeAffected):
         self.processing_interval = processing_interval
         self.number = proc_number
         self._context_switch_cost = context_switch_cost
-        self._threads_pool: List[Thread] = []
-        self._processing_slot: Optional[Thread] = None
+        self._thread_pool: List[Executable] = []
+        self._processing_slot: Optional[Executable] = None
         self._current_thread_processing_duration: Duration = Duration.zero()
         self._context_switch_duration: Duration = Duration.zero()
 
-    def assign(self, thread: Thread):
-        self._threads_pool.append(thread)
+    def assign(self, thread: Executable):
+        self._thread_pool.append(thread)
         self._assign_first_from_pool_if_starving()
 
     def ticked(self, time_delta: TimeDelta):
@@ -33,7 +33,7 @@ class Processor(TimeAffected):
         if self._processing_slot is None:
             return
 
-        if self._current_thread_processing_duration >= self.processing_interval and self._threads_pool:
+        if self._current_thread_processing_duration >= self.processing_interval and self._thread_pool:
             self._context_switch_duration += time_delta.duration
 
             if self._context_switch_duration <= self._context_switch_cost:
@@ -41,7 +41,7 @@ class Processor(TimeAffected):
 
             self._reset_counters()
             unassigned = self._unassign_current()
-            self._threads_pool.append(unassigned)
+            self._thread_pool.append(unassigned)
 
         else:
             self._processing_slot.ticked(time_delta)
@@ -49,7 +49,7 @@ class Processor(TimeAffected):
             self._handle_if_finished()
 
     def is_starving(self) -> bool:
-        return self._processing_slot is None and not self._threads_pool
+        return self._processing_slot is None and not self._thread_pool
 
     def __str__(self):
         return self._as_string()
@@ -63,9 +63,9 @@ class Processor(TimeAffected):
     def _assign_first_from_pool_if_starving(self):
         if self._processing_slot is not None:
             return
-        if not self._threads_pool:
+        if not self._thread_pool:
             return
-        self._processing_slot = self._threads_pool.pop(0)
+        self._processing_slot = self._thread_pool.pop(0)
 
     def _reset_counters(self):
         self._context_switch_duration = Duration.zero()
@@ -79,11 +79,11 @@ class Processor(TimeAffected):
         self._unassign_current()
         self._assign_first_from_pool_if_starving()
 
-    def _unassign_current(self) -> Optional[Thread]:
+    def _unassign_current(self) -> Optional[Executable]:
         if self._processing_slot is None:
             return None
         self._reset_counters()
-        unassigned: Thread = self._processing_slot
+        unassigned: Executable = self._processing_slot
         self._processing_slot = None
         return unassigned
 

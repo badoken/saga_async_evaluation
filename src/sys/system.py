@@ -2,7 +2,7 @@ from enum import Enum
 from typing import List
 
 from src.sys.processor import ProcessorFactory
-from src.sys.thread import Thread
+from src.sys.thread import Executable
 from src.sys.time.constants import thread_timeslice
 from src.sys.time.time import TimeDelta
 
@@ -20,21 +20,21 @@ class System:
             proc_factory: ProcessorFactory = ProcessorFactory()
     ):
         self.processing_mode = processing_mode
-        self._to_process_threads_queue: List[Thread] = []
+        self._executables_to_process_queue: List[Executable] = []
         self._processors = proc_factory.new(count=processors_count, processing_interval=thread_timeslice())
-        self._published: List[Thread] = []
+        self._published: List[Executable] = []
 
-    def publish(self, threads: List[Thread]):
-        self._published = threads
+    def publish(self, executables: List[Executable]):
+        self._published = executables
         if self.processing_mode is ProcessingMode.OVERLOADED_PROCESSORS:
             processors_number = len(self._processors)
-            for i in range(len(threads)):
-                thread = threads[i]
+            for i in range(len(executables)):
+                executable = executables[i]
                 processor = self._processors[i % processors_number]
-                processor.assign(thread)
+                processor.assign(executable)
             return
 
-        self._to_process_threads_queue.extend(threads)
+        self._executables_to_process_queue.extend(executables)
         self._feed_starving_processors()
 
     def tick(self, time_delta: TimeDelta):
@@ -44,19 +44,19 @@ class System:
             processor.ticked(time_delta=time_delta)
 
     def _feed_starving_processors(self):
-        if not len(self._to_process_threads_queue):
+        if not len(self._executables_to_process_queue):
             return
 
         for processor in self._processors:
             if not processor.is_starving():
                 continue
-            if not len(self._to_process_threads_queue):
+            if not len(self._executables_to_process_queue):
                 return
-            thread = self._to_process_threads_queue.pop(0)
-            processor.assign(thread)
+            executable = self._executables_to_process_queue.pop(0)
+            processor.assign(executable)
 
     def work_is_done(self) -> bool:
-        return len(self._to_process_threads_queue) == 0 and \
+        return len(self._executables_to_process_queue) == 0 and \
                all([processor.is_starving() for processor in self._processors])
 
 

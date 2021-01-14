@@ -2,16 +2,16 @@ import math
 from typing import List
 
 from src.log import LogContext
-from src.saga.coroutine_thread import CoroutineThreadFactory, CoroutineThread
+from src.saga.coroutine_saga import CoroutineSagaFactory, CoroutineSaga
 from src.saga.simple_saga import SimpleSaga
 from src.sys.system import SystemFactory, ProcessingMode, System
 from src.sys.time.duration import Duration
-from src.sys.thread import Thread
+from src.sys.thread import Executable
 from src.sys.time.time import TimeDelta
 
 
-def _run_threads(threads: List[Thread], system: System) -> Duration:
-    system.publish(threads)
+def _run(executables: List[Executable], system: System) -> Duration:
+    system.publish(executables)
     result = Duration.zero()
     tick_length = Duration(micros=1)
 
@@ -20,8 +20,8 @@ def _run_threads(threads: List[Thread], system: System) -> Duration:
         system.tick(delta)
         result += tick_length
 
-        for thread in threads:
-            for current_task in thread.get_current_tasks():
+        for executable in executables:
+            for current_task in executable.get_current_tasks():
                 if not current_task.is_waiting():
                     continue
                 current_task.wait(time_delta=delta)
@@ -44,7 +44,7 @@ class ThreadedOrchestrator:
         )
 
     def process(self, sagas: List[SimpleSaga]) -> Duration:
-        return _run_threads(threads=sagas, system=self._system)
+        return _run(executables=sagas, system=self._system)
 
 
 class CoroutinesOrchestrator:
@@ -52,17 +52,17 @@ class CoroutinesOrchestrator:
             self,
             processors_number: int,
             system_factory: SystemFactory = SystemFactory(),
-            coroutine_thread_factory: CoroutineThreadFactory = CoroutineThreadFactory()
+            coroutine_saga_factory: CoroutineSagaFactory = CoroutineSagaFactory()
     ):
         self._processors_count = processors_number
         self._system = system_factory.create(
             processors_count=processors_number,
             processing_mode=ProcessingMode.FIXED_POOL_SIZE
         )
-        self._coroutine_factory = coroutine_thread_factory
+        self._coroutine_factory = coroutine_saga_factory
 
     def process(self, sagas: List[SimpleSaga]) -> Duration:
-        coroutines: List[CoroutineThread] = []
+        coroutines: List[CoroutineSaga] = []
 
         sagas_bunch_size: int = int(math.ceil(float(len(sagas)) / self._processors_count))
         for i in range(self._processors_count):
@@ -78,4 +78,4 @@ class CoroutinesOrchestrator:
             coroutines.append(coroutine)
             sagas = sagas[sagas_bunch_size:]
 
-        return _run_threads(threads=coroutines, system=self._system)
+        return _run(executables=coroutines, system=self._system)

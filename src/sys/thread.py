@@ -5,7 +5,7 @@ from src.saga.task import Task
 from src.sys.time.time import TimeAffected
 
 
-class Thread(TimeAffected):
+class Executable(TimeAffected):
     @abstractmethod
     def is_finished(self) -> bool: pass
 

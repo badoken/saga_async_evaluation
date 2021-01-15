@@ -1,12 +1,11 @@
-from typing import List
 from unittest import TestCase
 from unittest.mock import Mock, call
 
-from src.sys.system import System, ProcessingMode
 from src.sys.processor import Processor, ProcessorFactory
-from src.sys.thread import Executable
+from src.sys.system import System, ProcessingMode
 from src.sys.time.duration import Duration
 from src.sys.time.time import TimeDelta
+from test.unit.sys.factories import create_executables
 
 
 class TestSystem(TestCase):
@@ -136,16 +135,6 @@ def proc_mock(factory: ProcessorFactory) -> Processor:
     processor1.assign = Mock(wraps=processor1.assign)
     factory.mocks.append(processor1)
     return processor1
-
-
-def create_executables(count: int) -> List[Executable]:
-    return [create_executable(name=f"executable {i}") for i in range(count)]
-
-
-def create_executable(name: str = "executable") -> Executable:
-    executable: Executable = Mock(name=name)
-    executable.get_current_tasks = lambda: []
-    return executable
 
 
 def reset_proc_mock(processor: Processor):

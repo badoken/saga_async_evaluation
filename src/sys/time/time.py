@@ -20,3 +20,8 @@ class TimeAffected(ABC):
     def ticked(self, time_delta: TimeDelta): pass
 
 
+class Limited(ABC):
+    @abstractmethod
+    def is_finished(self) -> bool: pass
+
+

@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Optional, Callable, TypeVar, Any, Tuple, List, NewType, Set, Collection
+from typing import Dict, Optional, Callable, TypeVar, Any, Tuple, List, NewType, Set, Collection, Union, ValuesView
 from uuid import UUID
 
 from termcolor import colored
@@ -160,30 +160,31 @@ class TimeLogger:
         )
 
     def _avg_time_per_action(self, action: _Action) -> Duration:
-        avg_action_duration_per_proc: List[Duration] = [
-            sum_duration / times
-            for (proc_num, act), (sum_duration, times)
-            in self._proc_and_action_to_sum_duration.items()
-            if act == action
-        ]
-        if not avg_action_duration_per_proc:
-            return Duration.zero()
-
-        return Duration.avg(*avg_action_duration_per_proc)
+        return Duration.avg(
+            *[
+                self._proc_and_action_to_sum_duration.get((processor_num, action),
+                                                          (Duration(micros=0), 0))[0]
+                for processor_num
+                in self._numbers_of_processors()
+            ]
+        )
 
     def _processors_work_ratio(self) -> Dict[_Action, Percentage]:
         processor_to_processing_percentage: Dict[ProcessorNumber, Percentage] = {}
-        processor_numbers = set([proc_num for proc_num, action in self._proc_and_action_to_sum_duration.keys()])
+        processor_numbers = self._numbers_of_processors()
         for processor_number in processor_numbers:
-            waiting_duration, _ = self._proc_and_action_to_sum_duration.get((processor_number, _Action.WAITING), (Duration.zero(), 0))
-            processing_duration, _ = self._proc_and_action_to_sum_duration.get((processor_number, _Action.PROCESSING), (Duration.zero(), 0))
+            waiting_duration, _ = self._proc_and_action_to_sum_duration.get((processor_number, _Action.WAITING),
+                                                                            (Duration.zero(), 0))
+            processing_duration, _ = self._proc_and_action_to_sum_duration.get((processor_number, _Action.PROCESSING),
+                                                                               (Duration.zero(), 0))
             if waiting_duration.is_zero:
                 if processing_duration.is_zero:
                     processor_to_processing_percentage[processor_number] = Percentage(0)
                     continue
                 processor_to_processing_percentage[processor_number] = Percentage(100)
                 continue
-            processor_to_processing_percentage[processor_number] = Percentage(processing_duration.micros * 100 / (processing_duration + waiting_duration).micros)
+            processor_to_processing_percentage[processor_number] = Percentage(
+                processing_duration.micros * 100 / (processing_duration + waiting_duration).micros)
 
         overall_processing_percentage = self._avg_percentage(processor_to_processing_percentage.values())
         return {
@@ -191,8 +192,11 @@ class TimeLogger:
             _Action.WAITING: Percentage(100 - overall_processing_percentage)
         }
 
+    def _numbers_of_processors(self) -> Set[ProcessorNumber]:
+        return set([proc_num for proc_num, action in self._proc_and_action_to_sum_duration.keys()])
+
     @staticmethod
-    def _avg_percentage(percentages: Collection[Percentage]) -> Percentage:
+    def _avg_percentage(percentages: Union[Collection[Percentage], ValuesView[Percentage]]) -> Percentage:
         sum_of_all = 0
         for percentage in percentages:
             sum_of_all += percentage

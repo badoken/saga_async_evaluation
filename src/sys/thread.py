@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from typing import List
 
@@ -40,3 +42,11 @@ class KernelThread(TimeAffected, Limited):
 
     def is_finished(self) -> bool:
         return not self._destruct_cool_down.is_positive
+
+    def __eq__(self, other: KernelThread):
+        if not isinstance(other, type(self)):
+            return False
+
+        return self._executable == other._executable and \
+               self._init_cool_down == other._init_cool_down and \
+               self._destruct_cool_down == other._destruct_cool_down

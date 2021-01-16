@@ -1,13 +1,14 @@
+from __future__ import annotations
+
 from typing import List, Any
 from unittest import TestCase
 from unittest.mock import Mock, call, ANY
 
 from src.log import TimeLogger, LogContext
-from src.sys.thread import Executable
 from src.sys.processor import Processor
-from src.sys.time.time import TimeDelta
 from src.sys.time.duration import Duration
-from test.unit.sys.factories import create_executable, create_executables
+from src.sys.time.time import TimeDelta
+from src.sys.thread import KernelThread
 
 
 class TestProcessor(TestCase):
@@ -21,120 +22,98 @@ class TestProcessor(TestCase):
         # given
         logger = given_logging_context_that_provides_logger()
 
-        executable = create_executable(ticks=2)
+        thread = create_thread(init_ticks=2, exec_ticks=2, destr_ticks=2)
         processor = Processor(processing_interval=Duration(20))
 
         # when
-        processor.assign(executable)
-        processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
-        processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
-        processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
+        processor.assign(thread)
+        for _ in range(7):
+            processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
 
         # then
-        executable.ticked.assert_has_calls([
-            call.ticked(TimeDelta(duration=Duration(micros=1), identifier=ANY)),
+        thread.ticked.assert_has_calls(calls=[
             call.ticked(TimeDelta(duration=Duration(micros=1), identifier=ANY))
+            for _
+            in range(6)
         ])
         logger.log_processor_tick.assert_has_calls([
-            call(proc_number=processor.number),
             call(proc_number=processor.number)
+            for _ in range(6)
         ])
 
     def test_is_starving_should_return_true_when_all_threads_are_processed(self):
         # given
         logger = given_logging_context_that_provides_logger()
 
-        executable1, executable2 = create_executables(count=2, ticks=1)
-        processor = Processor(processing_interval=Duration(5))
+        thread1, thread2 = create_threads(number_of_threads=2, init_ticks=3, exec_ticks=3, destr_ticks=3)
+        processor = Processor(processing_interval=Duration(2), context_switch_cost=Duration(1))
 
         # when
-        processor.assign(executable1)
-        processor.assign(executable2)
+        processor.assign(thread1)
+        processor.assign(thread2)
 
         # then
+        # should have only 1 switch for every thread since init and destr doesn't count
+        for i in range(21):
+            self.assertFalse(processor.is_starving(), msg=f"Tick {i}")
+            processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
+
         self.assertFalse(processor.is_starving())
-        processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
-        self.assertFalse(processor.is_starving())
-        processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
-        self.assertTrue(processor.is_starving())
 
         logger.log_processor_tick.assert_has_calls([
-            call(proc_number=processor.number),
             call(proc_number=processor.number)
+            for _ in range(21)
         ])
 
     def test_is_starving_should_return_true_when_thread_is_processed(self):
         # given
         logger = given_logging_context_that_provides_logger()
 
-        executable1 = create_executable(ticks=1)
+        thread = create_thread(init_ticks=1, exec_ticks=1, destr_ticks=1)
         processor = Processor(processing_interval=Duration(5))
 
         # when
-        processor.assign(executable1)
+        processor.assign(thread)
 
         # then
-        self.assertFalse(processor.is_starving())
-        processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
+        for i in range(3):
+            self.assertFalse(processor.is_starving(), msg=f"Tick {i}")
+            processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
+
         self.assertTrue(processor.is_starving())
 
-        logger.log_processor_tick.assert_called_once_with(proc_number=processor.number)
+        logger.log_processor_tick.assert_has_calls([
+            call(proc_number=processor.number)
+            for _ in range(3)
+        ])
 
     def test_is_starving_should_return_false_when_new_thread_is_assigned(self):
         # given
-        logger = given_logging_context_that_provides_logger()
+        given_logging_context_that_provides_logger()
 
-        executable1 = create_executable(ticks=1)
+        thread1 = create_thread(init_ticks=1, exec_ticks=1, destr_ticks=1)
         processor = Processor(processing_interval=Duration(5))
-        processor.assign(executable1)
+        processor.assign(thread1)
 
-        executable2 = create_executable(ticks=1)
+        thread2 = create_thread(init_ticks=1, exec_ticks=1, destr_ticks=1)
 
         # when
-        processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
-        processor.assign(executable2)
+        for i in range(3):
+            self.assertFalse(processor.is_starving(), msg=f"Tick {i}")
+            processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
+
+        processor.assign(thread2)
 
         # then
         self.assertFalse(processor.is_starving())
-
-        logger.log_processor_tick.assert_called_once_with(proc_number=processor.number)
-
-    def test_is_starving_should_return_false_when_switching_context(self):
-        # given
-        logger = given_logging_context_that_provides_logger()
-
-        executable1 = create_executable(ticks=20)
-        executable2 = create_executable(ticks=20)
-        processor = Processor(processing_interval=Duration(micros=5))
-        processor.assign(executable1)
-        processor.assign(executable2)
-
-        # when
-        processor.ticked(TimeDelta(Duration(micros=5)))
-
-        # then
-        for microseconds in range(processor._context_switch_cost.micros + 5):
-            self.assertFalse(
-                processor.is_starving(),
-                msg=f"Should not be starving during context switch and after at {Duration(micros=microseconds)}"
-            )
-            processor.ticked(time_delta=TimeDelta(Duration(micros=1)))
-
-        logger.log_processor_tick.assert_has_calls(
-            [
-                call(proc_number=processor.number)
-                for _
-                in range(processor._context_switch_cost.micros + 6)
-            ]
-        )
 
     def test_tick_should_not_switch_context_with_one_thread(self):
         # given
         logger = given_logging_context_that_provides_logger()
 
-        executable = create_executable(ticks=10)
+        thread = create_thread(init_ticks=3, exec_ticks=4, destr_ticks=3)
         processor = Processor(processing_interval=Duration(2))
-        processor.assign(executable)
+        processor.assign(thread)
 
         # when
         for microsecond in range(10):
@@ -154,58 +133,6 @@ class TestProcessor(TestCase):
             ]
         )
 
-    def test_ticked_should_switch_threads_if_processing_interval_is_not_multiple_of_context_switch_cost(self):
-        # given
-        logger = given_logging_context_that_provides_logger()
-
-        executable1 = create_executable(ticks=20)
-        executable2 = create_executable(ticks=20)
-        processor = Processor(processing_interval=Duration(micros=6), context_switch_cost=Duration(micros=2))
-
-        # when
-        processor.assign(executable1)
-        processor.assign(executable2)
-
-        for tick_number in range(10):
-            processor.ticked(time_delta=TimeDelta(Duration(micros=3)))
-
-        # then
-        self.assert_only_calls(called(times=4, duration=Duration(micros=3)), executable1.ticked)
-        self.assert_only_calls(called(times=3, duration=Duration(micros=3)), executable2.ticked)
-        logger.log_processor_tick.assert_has_calls(
-            [
-                call(proc_number=processor.number)
-                for _
-                in range(10)
-            ]
-        )
-
-    def test_ticked_should_switch_threads_if_processing_interval_is_multiple_of_context_switch_cost(self):
-        # given
-        logger = given_logging_context_that_provides_logger()
-
-        executable1 = create_executable(ticks=20)
-        executable2 = create_executable(ticks=20)
-        processor = Processor(processing_interval=Duration(micros=6), context_switch_cost=Duration(micros=2))
-
-        # when
-        processor.assign(executable1)
-        processor.assign(executable2)
-
-        for tick_number in range(10):
-            processor.ticked(time_delta=TimeDelta(Duration(micros=4)))
-
-        # then
-        self.assert_only_calls(called(times=4, duration=Duration(micros=4)), executable1.ticked)
-        self.assert_only_calls(called(times=3, duration=Duration(micros=4)), executable2.ticked)
-        logger.log_processor_tick.assert_has_calls(
-            [
-                call(proc_number=processor.number)
-                for _
-                in range(10)
-            ]
-        )
-
     def assert_only_calls(self, expected_calls: List[Any], mock: Any):
         self.assertEqual(expected_calls, mock.mock_calls)
 
@@ -214,7 +141,31 @@ def called(times: int, duration: Duration = Duration(micros=1)) -> List[Any]:
     return [call(TimeDelta(duration=duration, identifier=ANY)) for _ in range(times)]
 
 
-def given_logging_context_that_provides_logger() -> Mock:
+def given_logging_context_that_provides_logger() -> Mock[TimeLogger]:
     logger: Mock[TimeLogger] = Mock()
     LogContext.logger = lambda: logger
     return logger
+
+
+def create_threads(number_of_threads, init_ticks: int, exec_ticks: int, destr_ticks: int) -> List[Mock[KernelThread]]:
+    return [create_thread(init_ticks, exec_ticks, destr_ticks) for _ in range(number_of_threads)]
+
+
+def create_thread(init_ticks: int, exec_ticks: int, destr_ticks: int) -> Mock[KernelThread]:
+    thread: Mock[KernelThread] = Mock()
+    thread.tick_scenario: List[str] = []
+    for _ in range(init_ticks):
+        thread.tick_scenario.append("init")
+    for _ in range(exec_ticks):
+        thread.tick_scenario.append("exec")
+    for _ in range(destr_ticks):
+        thread.tick_scenario.append("destr")
+    thread.ticked = Mock()
+    thread.ticked.side_effect = lambda time_delta: [
+        thread.tick_scenario.pop(0) if thread.tick_scenario else None
+        for _
+        in range(time_delta.duration.micros)
+    ]
+    thread.is_doing_system_operation = lambda: next(iter(thread.tick_scenario), False) in ("init", "destr")
+    thread.is_finished = lambda: len(thread.tick_scenario) == 0
+    return thread

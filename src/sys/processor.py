@@ -1,10 +1,10 @@
-from typing import List, Optional, NewType
+from typing import List, Optional
 
-from src.sys.thread import Executable
-from src.sys.time.time import TimeAffected, TimeDelta
-from src.log import LogContext
-from src.sys.time.duration import Duration
+from src.log import LogContext, ProcessorNumber
+from src.sys.thread import KernelThread
 from src.sys.time.constants import thread_context_switch_overhead
+from src.sys.time.duration import Duration
+from src.sys.time.time import TimeAffected, TimeDelta
 
 
 class Processor(TimeAffected):
@@ -17,17 +17,17 @@ class Processor(TimeAffected):
         self.processing_interval = processing_interval
         self.number = proc_number
         self._context_switch_cost = context_switch_cost
-        self._thread_pool: List[Executable] = []
-        self._processing_slot: Optional[Executable] = None
+        self._thread_pool: List[KernelThread] = []
+        self._processing_slot: Optional[KernelThread] = None
         self._current_thread_processing_duration: Duration = Duration.zero()
         self._context_switch_duration: Duration = Duration.zero()
 
-    def assign(self, thread: Executable):
+    def assign(self, thread: KernelThread):
         self._thread_pool.append(thread)
         self._assign_first_from_pool_if_starving()
 
     def ticked(self, time_delta: TimeDelta):
-        LogContext.logger().log_processor_tick(proc_number=self.number)
+        LogContext.logger().log_processor_tick(proc_number=ProcessorNumber(self.number))
         self._assign_first_from_pool_if_starving()
 
         if self._processing_slot is None:
@@ -44,8 +44,9 @@ class Processor(TimeAffected):
             self._thread_pool.append(unassigned)
 
         else:
+            if not self._processing_slot.is_doing_system_operation():
+                self._current_thread_processing_duration += time_delta.duration
             self._processing_slot.ticked(time_delta)
-            self._current_thread_processing_duration += time_delta.duration
             self._handle_if_finished()
 
     def is_starving(self) -> bool:
@@ -79,11 +80,11 @@ class Processor(TimeAffected):
         self._unassign_current()
         self._assign_first_from_pool_if_starving()
 
-    def _unassign_current(self) -> Optional[Executable]:
+    def _unassign_current(self) -> Optional[KernelThread]:
         if self._processing_slot is None:
             return None
         self._reset_counters()
-        unassigned: Executable = self._processing_slot
+        unassigned: KernelThread = self._processing_slot
         self._processing_slot = None
         return unassigned
 
@@ -100,5 +101,6 @@ class ProcessorFactory:
         processors = []
         for i in range(count):
             self.last_processor_number += 1
-            processors.append(Processor(proc_number=self.last_processor_number, processing_interval=processing_interval))
+            processors.append(
+                Processor(proc_number=self.last_processor_number, processing_interval=processing_interval))
         return processors

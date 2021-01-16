@@ -5,6 +5,7 @@ from src.sys.processor import Processor, ProcessorFactory
 from src.sys.system import System, ProcessingMode
 from src.sys.time.duration import Duration
 from src.sys.time.time import TimeDelta
+from src.sys.thread import KernelThread
 from test.unit.sys.factories import create_executables
 
 
@@ -32,9 +33,9 @@ class TestSystem(TestCase):
         system.tick(time_delta=delta2)
 
         # then
-        processor1.assign.assert_has_calls([call(executable1), call(executable3)])
+        processor1.assign.assert_has_calls([call(KernelThread(executable1)), call(KernelThread(executable3))])
         processor1.ticked.assert_has_calls([call(time_delta=delta1), call(time_delta=delta2)])
-        processor2.assign.assert_has_calls([call(executable2), call(executable4)])
+        processor2.assign.assert_has_calls([call(KernelThread(executable2)), call(KernelThread(executable4))])
         processor2.ticked.assert_has_calls([call(time_delta=delta1), call(time_delta=delta2)])
 
     def test_should_publish_all_tasks_to_proc_if_in_fixed_pool_mode(self):
@@ -54,10 +55,10 @@ class TestSystem(TestCase):
         system.tick(time_delta=delta1)
 
         # then
-        processor1.assign.assert_called_once_with(executable1)
+        processor1.assign.assert_called_once_with(KernelThread(executable1))
         processor1.ticked.assert_called_once_with(time_delta=delta1)
         reset_proc_mock(processor1)
-        processor2.assign.assert_called_once_with(executable2)
+        processor2.assign.assert_called_once_with(KernelThread(executable2))
         processor2.ticked.assert_called_once_with(time_delta=delta1)
         reset_proc_mock(processor2)
 
@@ -68,9 +69,9 @@ class TestSystem(TestCase):
         system.tick(time_delta=delta2)
 
         # then
-        processor1.assign.assert_called_once_with(executable3)
+        processor1.assign.assert_called_once_with(KernelThread(executable3))
         processor1.ticked.assert_called_once_with(time_delta=delta2)
-        processor2.assign.assert_called_once_with(executable4)
+        processor2.assign.assert_called_once_with(KernelThread(executable4))
         processor2.ticked.assert_called_once_with(time_delta=delta2)
 
     def test_work_is_done_should_return_false_if_processors_are_not_starving(self):

@@ -2,7 +2,7 @@ from enum import Enum
 from typing import List
 
 from src.sys.processor import ProcessorFactory
-from src.sys.thread import Executable
+from src.sys.thread import Executable, KernelThread
 from src.sys.time.constants import thread_timeslice
 from src.sys.time.time import TimeDelta
 
@@ -31,7 +31,8 @@ class System:
             for i in range(len(executables)):
                 executable = executables[i]
                 processor = self._processors[i % processors_number]
-                processor.assign(executable)
+                thread = KernelThread(executable)
+                processor.assign(thread)
             return
 
         self._executables_to_process_queue.extend(executables)
@@ -53,7 +54,8 @@ class System:
             if not len(self._executables_to_process_queue):
                 return
             executable = self._executables_to_process_queue.pop(0)
-            processor.assign(executable)
+            thread = KernelThread(executable)
+            processor.assign(thread)
 
     def work_is_done(self) -> bool:
         return len(self._executables_to_process_queue) == 0 and \

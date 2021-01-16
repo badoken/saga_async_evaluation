@@ -58,10 +58,10 @@ class Report:
     log_name: str
     simulation_duration: Duration
 
-    avg_proc_processing: Duration
-    proc_processing_percentage: Percentage
+    avg_processor_task_handling: Duration
+    processor_task_handling_percentage: Percentage
 
-    avg_proc_waiting: Duration
+    avg_processor_waiting: Duration
 
 
 class TimeLogger:
@@ -154,9 +154,9 @@ class TimeLogger:
         return Report(
             log_name=self.name,
             simulation_duration=self._duration,
-            avg_proc_processing=self._avg_time_per_action(_Action.PROCESSING),
-            proc_processing_percentage=processor_work_ratio.get(_Action.PROCESSING, 0),
-            avg_proc_waiting=self._avg_time_per_action(_Action.WAITING)
+            avg_processor_task_handling=self._avg_time_per_action(_Action.PROCESSING),
+            processor_task_handling_percentage=processor_work_ratio.get(_Action.PROCESSING, 0),
+            avg_processor_waiting=self._avg_time_per_action(_Action.WAITING)
         )
 
     def _avg_time_per_action(self, action: _Action) -> Duration:

@@ -124,7 +124,7 @@ class TestTimeLogger(TestCase):
         report_publisher.assert_called_once_with(
             replace(
                 log_report_with_any_values(log_name="logger"),
-                proc_processing_percentage=Percentage(75)
+                processor_task_handling_percentage=Percentage(75)
             )
         )
 
@@ -157,7 +157,7 @@ class TestTimeLogger(TestCase):
         report_publisher.assert_called_once_with(
             replace(
                 log_report_with_any_values(log_name="logger"),
-                avg_proc_processing=Duration(micros=2)
+                avg_processor_task_handling=Duration(micros=2)
             )
         )
 
@@ -185,7 +185,7 @@ class TestTimeLogger(TestCase):
         report_publisher.assert_called_once_with(
             replace(
                 log_report_with_any_values(log_name="logger"),
-                avg_proc_waiting=Duration(micros=2)
+                avg_processor_waiting=Duration(micros=2)
             )
         )
 
@@ -294,7 +294,7 @@ def log_report_with_any_values(log_name: str):
     return Report(
         log_name=log_name,
         simulation_duration=ANY,
-        avg_proc_waiting=ANY,
-        avg_proc_processing=ANY,
-        proc_processing_percentage=ANY
+        avg_processor_waiting=ANY,
+        avg_processor_task_handling=ANY,
+        processor_task_handling_percentage=ANY
     )

@@ -1,62 +1,73 @@
+from asyncio import Future
+from concurrent.futures.thread import ThreadPoolExecutor
 from copy import deepcopy
-from threading import Thread
+from multiprocessing import cpu_count
 from typing import List
 
 from saga.generation import generate_saga
+from saga.orchestration import CoroutinesOrchestrator
 from saga.simple_saga import SimpleSaga
 from src.log import LogContext
-from saga.orchestration import CoroutinesOrchestrator
 from src.saga.orchestration import ThreadedOrchestrator
 from src.sys.system import ProcessingMode
-from src.sys.time.duration import Duration
 
-_sagas = [
-    generate_saga()
-    for _
-    in range(20)
-]
+this_machine_processors_number = cpu_count() + 1
 
+with ThreadPoolExecutor(max_workers=this_machine_processors_number) as executor:
+    print(f"Running simulation on {this_machine_processors_number} processors")
 
-def sagas_copy() -> List[SimpleSaga]:
-    return deepcopy(_sagas)
-
-
-overloaded_threads_orchestrator = ThreadedOrchestrator(processors_number=2,
-                                                       processing_mode=ProcessingMode.OVERLOADED_PROCESSORS)
-fixed_pool_threads_orchestrator = ThreadedOrchestrator(processors_number=2,
-                                                       processing_mode=ProcessingMode.FIXED_POOL_SIZE)
-coroutines_orchestrator = CoroutinesOrchestrator(processors_number=2)
-
-threads: List[Thread] = []
+    _sagas = [
+        generate_saga()
+        for _
+        in range(20)
+    ]
 
 
-def run_in_parallel(orchestrator, short_name: str):
-    new_thread = Thread(
-        name=short_name,
-        target=lambda: LogContext.run_logging(
-            log_name=short_name,
-            action=lambda: orchestrator.process(sagas_copy()),
-            publish_report_every=Duration(millis=100)
+    def sagas_copy() -> List[SimpleSaga]:
+        return deepcopy(_sagas)
+
+
+    def overloaded_orchestrator(processors: int) -> ThreadedOrchestrator:
+        return ThreadedOrchestrator(processors_number=processors, processing_mode=ProcessingMode.OVERLOADED_PROCESSORS)
+
+
+    def fixed_pool_orchestrator(processors: int) -> ThreadedOrchestrator:
+        return ThreadedOrchestrator(processors_number=processors, processing_mode=ProcessingMode.FIXED_POOL_SIZE)
+
+
+    def coroutines_orchestrator(processors: int) -> CoroutinesOrchestrator:
+        return CoroutinesOrchestrator(processors_number=processors)
+
+
+    simulation_futures: List[Future] = []
+
+
+    def run_in_parallel(orchestrator, short_name: str):
+        simulation_futures.append(
+            executor.submit(
+                lambda: LogContext.run_logging(
+                    log_name=short_name,
+                    action=lambda: orchestrator.process(sagas_copy())
+                )
+            )
         )
-    )
-    threads.append(new_thread)
-    new_thread.start()
 
 
-run_in_parallel(
-    orchestrator=overloaded_threads_orchestrator,
-    short_name="overloaded"
-)
+    for number_of_processors in range(2, 10, 2):
+        run_in_parallel(
+            orchestrator=overloaded_orchestrator(processors=number_of_processors),
+            short_name=f"overloaded[{number_of_processors}]"
+        )
 
-run_in_parallel(
-    orchestrator=fixed_pool_threads_orchestrator,
-    short_name="fixed_pool"
-)
+        run_in_parallel(
+            orchestrator=fixed_pool_orchestrator(processors=number_of_processors),
+            short_name=f"fixed_pool[{number_of_processors}]"
+        )
 
-run_in_parallel(
-    orchestrator=coroutines_orchestrator,
-    short_name="async"
-)
+        run_in_parallel(
+            orchestrator=coroutines_orchestrator(processors=number_of_processors),
+            short_name=f"async[{number_of_processors}]"
+        )
 
-for thread in threads:
-    thread.join()
+    while simulation_futures:
+        simulation_futures.pop(0).result()

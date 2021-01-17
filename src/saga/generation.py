@@ -2,8 +2,8 @@ from random import randint
 from typing import List
 from uuid import uuid4
 
-from saga.simple_saga import SimpleSaga
-from saga.task import Task, SystemOperation
+from src.saga.simple_saga import SimpleSaga
+from src.saga.task import Task, SystemOperation
 from src.sys.time.duration import Duration
 
 

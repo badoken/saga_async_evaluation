@@ -60,10 +60,8 @@ class TestProcessor(TestCase):
 
         self.assertFalse(processor.is_starving())
 
-        logger.log_processor_tick.assert_has_calls([
-            call(proc_number=processor.number)
-            for _ in range(21)
-        ])
+        logger.log_processor_tick.assert_has_calls([call(proc_number=processor.number) for _ in range(21)])
+        logger.log_overhead_tick.assert_has_calls([call() for _ in range(4)])
 
     def test_is_starving_should_return_true_when_thread_is_processed(self):
         # given
@@ -82,10 +80,7 @@ class TestProcessor(TestCase):
 
         self.assertTrue(processor.is_starving())
 
-        logger.log_processor_tick.assert_has_calls([
-            call(proc_number=processor.number)
-            for _ in range(3)
-        ])
+        logger.log_processor_tick.assert_has_calls([call(proc_number=processor.number) for _ in range(3)])
 
     def test_is_starving_should_return_false_when_new_thread_is_assigned(self):
         # given
@@ -125,13 +120,7 @@ class TestProcessor(TestCase):
             processor.is_starving(),
             msg="Should be starving after the work is done"
         )
-        logger.log_processor_tick.assert_has_calls(
-            [
-                call(proc_number=processor.number)
-                for _
-                in range(10)
-            ]
-        )
+        logger.log_processor_tick.assert_has_calls([call(proc_number=processor.number) for _ in range(10)])
 
     def assert_only_calls(self, expected_calls: List[Any], mock: Any):
         self.assertEqual(expected_calls, mock.mock_calls)

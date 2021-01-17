@@ -51,6 +51,7 @@ ProcessorNumber = NewType('ProcessorNumber', int)
 class _Action(Enum):
     WAITING = 1
     PROCESSING = 2
+    OVERHEAD = 3
 
 
 @dataclass
@@ -62,6 +63,10 @@ class Report:
     processor_task_handling_percentage: Percentage
 
     avg_processor_waiting: Duration
+    processor_waiting_percentage: Percentage
+
+    avg_processor_overhead_work: Duration
+    processor_overhead_work_percentage: Percentage
 
 
 class TimeLogger:
@@ -108,8 +113,8 @@ class TimeLogger:
     def log_task_processing(self, name: str, identifier: UUID):
         self._log_task(identifier=identifier, action=_Action.PROCESSING)
 
-    def log_system_operation_tick(self):
-        pass
+    def log_overhead_tick(self):
+        self._log_task(identifier="overhead", action=_Action.OVERHEAD)
 
     def _log_task(self, identifier: Any, action: _Action):
         if self._ticked_processor is None:
@@ -159,7 +164,10 @@ class TimeLogger:
             simulation_duration=self._duration,
             avg_processor_task_handling=self._avg_time_per_action(_Action.PROCESSING),
             processor_task_handling_percentage=processor_work_ratio.get(_Action.PROCESSING, 0),
-            avg_processor_waiting=self._avg_time_per_action(_Action.WAITING)
+            avg_processor_waiting=self._avg_time_per_action(_Action.WAITING),
+            processor_waiting_percentage=processor_work_ratio.get(_Action.WAITING, 0),
+            avg_processor_overhead_work=self._avg_time_per_action(_Action.OVERHEAD),
+            processor_overhead_work_percentage=processor_work_ratio.get(_Action.OVERHEAD, 0)
         )
 
     def _avg_time_per_action(self, action: _Action) -> Duration:
@@ -172,31 +180,37 @@ class TimeLogger:
         )
 
     def _processors_work_ratio(self) -> Dict[_Action, Percentage]:
-        processor_to_processing_percentage: Dict[ProcessorNumber, Percentage] = {}
-        processor_numbers = self._numbers_of_processors()
-        for processor_number in processor_numbers:
-            waiting_duration = self._proc_and_action_to_sum_duration.get(
-                (processor_number, _Action.WAITING),
-                Duration.zero()
-            )
-            processing_duration = self._proc_and_action_to_sum_duration.get(
-                (processor_number, _Action.PROCESSING),
-                Duration.zero()
-            )
-            if waiting_duration.is_zero:
-                if processing_duration.is_zero:
-                    processor_to_processing_percentage[processor_number] = Percentage(0)
-                    continue
-                processor_to_processing_percentage[processor_number] = Percentage(100)
-                continue
-            processor_to_processing_percentage[processor_number] = Percentage(
-                processing_duration.micros * 100 / (processing_duration + waiting_duration).micros)
+        numbers_of_processors = self._numbers_of_processors()
+        processors_number = len(numbers_of_processors)
 
-        overall_processing_percentage = self._avg_percentage(processor_to_processing_percentage.values())
-        return {
-            _Action.PROCESSING: overall_processing_percentage,
-            _Action.WAITING: Percentage(100 - overall_processing_percentage)
-        }
+        processor_and_action_to_processing_percentage: Dict[Tuple[ProcessorNumber, _Action], Percentage] = {}
+        for processor_number in numbers_of_processors:
+            processor_action_to_sum_duration: Dict[_Action, Duration] = dict([
+                (
+                    action,
+                    self._proc_and_action_to_sum_duration.get((processor_number, action), Duration.zero())
+                )
+                for action
+                in _Action
+            ])
+            sum_duration_of_all_actions = Duration.sum(*processor_action_to_sum_duration.values())
+
+            for action, sum_duration_of_action in processor_action_to_sum_duration.items():
+                processor_and_action_to_processing_percentage[processor_number, action] = \
+                    Percentage(float(sum_duration_of_action.micros) * 100 / sum_duration_of_all_actions.micros)
+
+        action_to_percentage: Dict[_Action, Percentage] = {}
+        for action in _Action:
+            sum_of_action_percentage_of_processors = sum(
+                [
+                    processor_and_action_to_processing_percentage[proc_number, action]
+                    for proc_number
+                    in numbers_of_processors
+                ]
+            )
+            action_to_percentage[action] = Percentage(sum_of_action_percentage_of_processors / processors_number)
+
+        return action_to_percentage
 
     def _numbers_of_processors(self) -> Set[ProcessorNumber]:
         return set([proc_num for proc_num, action in self._proc_and_action_to_sum_duration.keys()])

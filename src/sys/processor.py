@@ -34,6 +34,7 @@ class Processor(TimeAffected):
             return
 
         if self._current_thread_processing_duration >= self.processing_interval and self._thread_pool:
+            LogContext.logger().log_overhead_tick()
             self._context_switch_duration += time_delta.duration
 
             if self._context_switch_duration <= self._context_switch_cost:

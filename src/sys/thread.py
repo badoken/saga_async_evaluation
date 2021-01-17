@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import List
 
+from src.log import LogContext
 from src.saga.task import Task
 from src.sys.time.constants import thread_creation_cost, thread_destruction_cost
 from src.sys.time.time import TimeAffected, Limited
@@ -29,6 +30,7 @@ class KernelThread(TimeAffected, Limited):
 
     def ticked(self, time_delta: TimeDelta):
         if self._init_cool_down.is_positive:
+            LogContext.logger().log_overhead_tick()
             self._init_cool_down -= time_delta.duration
             return
 
@@ -37,6 +39,7 @@ class KernelThread(TimeAffected, Limited):
             return
 
         if self._destruct_cool_down.is_positive:
+            LogContext.logger().log_overhead_tick()
             self._destruct_cool_down -= time_delta.duration
             return
 

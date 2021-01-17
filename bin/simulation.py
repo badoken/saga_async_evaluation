@@ -19,7 +19,7 @@ with ThreadPoolExecutor(max_workers=this_machine_processors_number) as executor:
     _sagas = [
         generate_saga()
         for _
-        in range(20)
+        in range(40)
     ]
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass
 from enum import Enum
+from random import shuffle
 from typing import Dict, Optional, Callable, TypeVar, Any, Tuple, List, NewType, Set, Collection, Union, ValuesView
 from uuid import UUID
 
@@ -223,14 +224,18 @@ class TimeLogger:
         return Percentage(sum_of_all / len(percentages))
 
 
-_available_colours: Set[str] = {"red", "green", "yellow", "blue", "magenta", "cyan", "white"}  # Also: "grey"
+_available_colours: List[str] = ["red", "green", "yellow", "blue", "magenta", "cyan", "white"]
+shuffle(_available_colours)
+_last_color_position: List[int] = [0]
 _assigned_colours: Dict[str, str] = {}
 
 
 def print_coloured(report: Report):
     colour = _assigned_colours.get(report.log_name)
     if colour is None:
-        colour = _available_colours.pop()
+        _color_position = _last_color_position[0] % len(_available_colours)
+        _last_color_position[0] = _color_position + 1
+        colour = _available_colours[_color_position]
         _assigned_colours[report.log_name] = colour
 
     print(colored(str(report), color=colour))

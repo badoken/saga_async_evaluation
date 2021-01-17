@@ -78,7 +78,7 @@ class TimeLogger:
 
         self._ticked_processor: Optional[ProcessorNumber] = None
         self._proc_to_last_action_duration: Dict[ProcessorNumber, Tuple[_Action, Duration]] = {}
-        self._proc_and_action_to_sum_duration: Dict[Tuple[ProcessorNumber, _Action], Tuple[Duration, int]] = {}
+        self._proc_and_action_to_sum_duration: Dict[Tuple[ProcessorNumber, _Action], Duration] = {}
 
     def close(self):
         self._account_last_actions()
@@ -108,6 +108,9 @@ class TimeLogger:
     def log_task_processing(self, name: str, identifier: UUID):
         self._log_task(identifier=identifier, action=_Action.PROCESSING)
 
+    def log_system_operation_tick(self):
+        pass
+
     def _log_task(self, identifier: Any, action: _Action):
         if self._ticked_processor is None:
             raise ValueError("Task ticked when processor is not ticked before. "
@@ -131,21 +134,21 @@ class TimeLogger:
 
         self._proc_to_last_action_duration[proc_number] = action, Duration(micros=1)
 
-        last_action_sum_duration, last_action_times = self._proc_and_action_to_sum_duration.get(
+        last_action_sum_duration = self._proc_and_action_to_sum_duration.get(
             (proc_number, last_action),
-            (Duration(micros=0), 1)
+            Duration(micros=0)
         )
         self._proc_and_action_to_sum_duration[proc_number, last_action] = \
-            last_action_sum_duration + last_action_duration, last_action_times + 1
+            last_action_sum_duration + last_action_duration
 
     def _account_last_actions(self):
         for processor_number, (action, duration) in self._proc_to_last_action_duration.items():
-            action_sum_duration, action_times = self._proc_and_action_to_sum_duration.get(
+            action_sum_duration = self._proc_and_action_to_sum_duration.get(
                 (processor_number, action),
-                (Duration(micros=0), 0)
+                Duration(micros=0)
             )
             self._proc_and_action_to_sum_duration[processor_number, action] = \
-                action_sum_duration + duration, action_times + 1
+                action_sum_duration + duration
         self._proc_to_last_action_duration.clear()
 
     def _generate_report(self) -> Report:
@@ -162,8 +165,7 @@ class TimeLogger:
     def _avg_time_per_action(self, action: _Action) -> Duration:
         return Duration.avg(
             *[
-                self._proc_and_action_to_sum_duration.get((processor_num, action),
-                                                          (Duration(micros=0), 0))[0]
+                self._proc_and_action_to_sum_duration.get((processor_num, action), Duration(micros=0))
                 for processor_num
                 in self._numbers_of_processors()
             ]
@@ -173,10 +175,14 @@ class TimeLogger:
         processor_to_processing_percentage: Dict[ProcessorNumber, Percentage] = {}
         processor_numbers = self._numbers_of_processors()
         for processor_number in processor_numbers:
-            waiting_duration, _ = self._proc_and_action_to_sum_duration.get((processor_number, _Action.WAITING),
-                                                                            (Duration.zero(), 0))
-            processing_duration, _ = self._proc_and_action_to_sum_duration.get((processor_number, _Action.PROCESSING),
-                                                                               (Duration.zero(), 0))
+            waiting_duration = self._proc_and_action_to_sum_duration.get(
+                (processor_number, _Action.WAITING),
+                Duration.zero()
+            )
+            processing_duration = self._proc_and_action_to_sum_duration.get(
+                (processor_number, _Action.PROCESSING),
+                Duration.zero()
+            )
             if waiting_duration.is_zero:
                 if processing_duration.is_zero:
                     processor_to_processing_percentage[processor_number] = Percentage(0)
@@ -203,7 +209,7 @@ class TimeLogger:
         return Percentage(sum_of_all / len(percentages))
 
 
-_available_colours: Set[str] = {"grey", "red", "green", "yellow", "blue", "magenta", "cyan", "white"}
+_available_colours: Set[str] = {"red", "green", "yellow", "blue", "magenta", "cyan", "white"}  # Also: "grey"
 _assigned_colours: Dict[str, str] = {}
 
 

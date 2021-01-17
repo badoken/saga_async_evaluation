@@ -69,11 +69,11 @@ class TestTimeLogger(TestCase):
         # given
         logger = TimeLogger(name="logger")
         logger.log_processor_tick(proc_number=3)
-        self.log_random_task_processing(logger)
+        log_random_task_processing(logger)
 
         # when
         try:
-            self.log_random_task_processing(logger)
+            log_random_task_processing(logger)
 
         # then
         except ValueError:
@@ -81,17 +81,17 @@ class TestTimeLogger(TestCase):
 
         self.fail("Had to throw an exception")
 
-    def test_task_trigger_should_be_able_to_happen_after_another_task_trigger_and_proc_ticked_in_between(self    ):
+    def test_task_trigger_should_be_able_to_happen_after_another_task_trigger_and_proc_ticked_in_between(self):
         # given
         logger = TimeLogger(name="logger")
         logger.log_processor_tick(proc_number=3)
-        self.log_random_task_processing(logger)
+        log_random_task_processing(logger)
 
         # when
         logger.shift_time()
         logger.log_processor_tick(proc_number=3)
         try:
-            self.log_random_task_processing(logger=logger)
+            log_random_task_processing(logger=logger)
 
         # then
         except ValueError:
@@ -104,7 +104,7 @@ class TestTimeLogger(TestCase):
 
         # when
         logger.log_processor_tick(proc_number=5)
-        self.log_random_task_processing(logger)
+        log_random_task_processing(logger)
         logger.log_processor_tick(proc_number=3)
         logger.shift_time()
 
@@ -112,11 +112,11 @@ class TestTimeLogger(TestCase):
         logger.shift_time()
 
         logger.log_processor_tick(proc_number=3)
-        self.log_random_task_processing(logger)
+        log_random_task_processing(logger)
         logger.shift_time()
 
         logger.log_processor_tick(proc_number=3)
-        self.log_random_task_processing(logger)
+        log_random_task_processing(logger)
 
         logger.close()
 
@@ -135,21 +135,21 @@ class TestTimeLogger(TestCase):
 
         # when
         logger.log_processor_tick(proc_number=5)
-        self.log_random_task_processing(logger)
+        log_random_task_processing(logger)
         logger.log_processor_tick(proc_number=3)
-        self.log_random_task_processing(logger)
+        log_random_task_processing(logger)
         logger.shift_time()
 
         logger.log_processor_tick(proc_number=3)
-        self.log_random_task_processing(logger)
+        log_random_task_processing(logger)
         logger.shift_time()
 
         logger.log_processor_tick(proc_number=3)
-        self.log_random_task_processing(logger)
+        log_random_task_processing(logger)
         logger.shift_time()
 
         logger.log_processor_tick(proc_number=3)
-        self.log_random_task_processing(logger)
+        log_random_task_processing(logger)
 
         logger.close()
 
@@ -196,9 +196,9 @@ class TestTimeLogger(TestCase):
 
         # when
         logger.log_processor_tick(proc_number=5)
-        self.log_random_task_processing(logger)
+        log_random_task_processing(logger)
         logger.log_processor_tick(proc_number=3)
-        self.log_random_task_processing(logger)
+        log_random_task_processing(logger)
         logger.shift_time()
 
         logger.log_processor_tick(proc_number=3)
@@ -240,8 +240,9 @@ class TestTimeLogger(TestCase):
             ))
         ])
 
-    def log_random_task_processing(self, logger: TimeLogger):
-        logger.log_task_processing(name=f"task{uuid4()}", identifier=uuid4())
+
+def log_random_task_processing(logger: TimeLogger):
+    logger.log_task_processing(name=f"task{uuid4()}", identifier=uuid4())
 
 
 class TestPrintColored(TestCase):

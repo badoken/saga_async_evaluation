@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import Any, Callable, Set, cast
+from threading import Thread
+from typing import Any, Callable, Set, cast, List
 from unittest.case import TestCase
 from unittest.mock import patch, Mock, ANY, call
 from uuid import uuid4
@@ -27,6 +28,27 @@ class TestLogContext(TestCase):
         logger.log_processor_tick.assert_called_with(proc_number=2)
         logger.close.assert_called_once()
         self.assertEqual("expected", actual)
+
+    def test_run_logging_should_provide_unique_logger_for_each_thread(self):
+        # given
+        loggers: Set[TimeLogger] = set()
+
+        # when
+        thread1 = Thread(target=lambda: LogContext.run_logging(
+            log_name="test1",
+            action=lambda: loggers.add(LogContext.logger())
+        ))
+        thread2 = Thread(target=lambda: LogContext.run_logging(
+            log_name="test2",
+            action=lambda: loggers.add(LogContext.logger())
+        ))
+        thread1.start()
+        thread2.start()
+
+        # then
+        thread1.join()
+        thread2.join()
+        self.assertEqual(2, len(loggers))
 
     @patch("src.log.TimeLogger")
     def test_logger_is_inaccessible_outside_of_context(self, time_logger_class):

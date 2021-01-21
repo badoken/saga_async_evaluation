@@ -13,7 +13,6 @@ from src.sys.time.duration import Duration
 
 
 class LogContext:
-    _lock = threading.Lock()
     _logger: Dict[int, TimeLogger] = {}
     T = TypeVar('T')
 
@@ -24,15 +23,13 @@ class LogContext:
             publish_report_every: Optional[Duration] = None
     ) -> T:
         thread_number = threading.get_ident()
-        with LogContext._lock:
-            LogContext._logger[thread_number] = TimeLogger(name=log_name, publish_report_every=publish_report_every)
+        LogContext._logger[thread_number] = TimeLogger(name=log_name, publish_report_every=publish_report_every)
 
         try:
             result = action()
         finally:
-            with LogContext._lock:
-                LogContext.logger().close()
-                LogContext._logger.pop(thread_number)
+            LogContext.logger().close()
+            LogContext._logger.pop(thread_number)
 
         return result
 
@@ -209,7 +206,10 @@ class TimeLogger:
                     in numbers_of_processors
                 ]
             )
-            action_to_percentage[action] = Percentage(sum_of_action_percentage_of_processors / processors_number)
+            action_to_percentage[action] = \
+                Percentage(sum_of_action_percentage_of_processors / processors_number) \
+                    if processors_number != 0 \
+                    else Percentage(0)
 
         return action_to_percentage
 

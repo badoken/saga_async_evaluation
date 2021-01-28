@@ -7,5 +7,4 @@ COPY .. .
 RUN ls -l
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "./generate_sagas.py"]
-CMD ["python", "./run.py"]
+CMD ["python", "-u", "./run.py"]

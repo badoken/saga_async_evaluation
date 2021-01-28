@@ -47,7 +47,7 @@ class _SimulationRunner:
         return deepcopy(self.sagas[:number])
 
     def run(self):
-        this_machine_processors_to_use: int = min(self._number_of_simulations, multiprocessing.cpu_count())
+        this_machine_processors_to_use: int = min(self._number_of_simulations, multiprocessing.cpu_count() + 1)
 
         now = datetime.now().strftime("%Y.%m.%d_%H-%M-%S")
         with open(f"out/{now}.log", mode="w") as self.output:
@@ -58,7 +58,7 @@ class _SimulationRunner:
                 self._run_simulations_in_executor(executor)
 
             self._store_line("Simulation successfully finished!")
-            print("Simulation successfully finished!")
+            print("\nSimulation successfully finished!")
 
     def _run_simulations_in_executor(self, executor: ThreadPoolExecutor):
         simulation_futures: List[Future] = []
@@ -66,7 +66,7 @@ class _SimulationRunner:
 
             def run_in_parallel(orchestrator_to_run: Orchestrator, short_name: str):
                 sagas_to_process = self._sagas_copy(number_of_sagas)
-                print(f"Submitting processing of {short_name} with {len(sagas_to_process)} sagas")
+                # print(f"Submitting processing of {short_name} with {len(sagas_to_process)} sagas")
                 simulation_futures.append(
                     executor.submit(
                         lambda: LogContext.run_logging(
@@ -110,13 +110,13 @@ class _SimulationRunner:
     def _number_of_simulations(self):
         number_of_simulations_per_orchestrator: int = len(self.number_of_sagas_sets) * len(self.processors)
 
-        simulations_per_thread_orch: int = number_of_simulations_per_orchestrator * len(self.thread_orchestrators_modes)
-        simulations_for_coroutine_orch: int = number_of_simulations_per_orchestrator if self.coroutine_orchestrator else 0
+        simulations_per_all_thread_orchs: int = \
+            number_of_simulations_per_orchestrator * len(self.thread_orchestrators_modes)
 
-        return min(
-            cpu_count() + 1,
-            simulations_per_thread_orch + simulations_for_coroutine_orch
-        )
+        simulations_for_coroutine_orch: int = \
+            number_of_simulations_per_orchestrator if self.coroutine_orchestrator else 0
+
+        return simulations_per_all_thread_orchs + simulations_for_coroutine_orch
 
     @staticmethod
     def _display_progress_bar(current: int, total: int, bar_length: int = 20):
@@ -126,7 +126,7 @@ class _SimulationRunner:
         spaces = ' ' * (bar_length - len(arrow))
         progress_visualisation = arrow + spaces
 
-        print(f'Progress: [{progress_visualisation}] {int(percent)} %   # can hang like that for some time', end='\r')
+        print(f'Progress: [{progress_visualisation}] {int(percent)} %   # can hang like that for a long time', end='\r')
 
 
 def run_simulation(

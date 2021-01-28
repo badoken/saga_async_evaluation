@@ -20,10 +20,15 @@ class LogContext:
     def run_logging(
             log_name: str,
             action: Callable[[], T],
-            publish_report_every: Optional[Duration] = None
+            publish_report_every: Optional[Duration] = None,
+            report_publisher: Optional[Callable[[Report], Any]] = None
     ) -> T:
         thread_number = threading.get_ident()
-        LogContext._logger[thread_number] = TimeLogger(name=log_name, publish_report_every=publish_report_every)
+        LogContext._logger[thread_number] = TimeLogger(
+            name=log_name,
+            publish_report_every=publish_report_every,
+            report_publisher=report_publisher
+        )
 
         try:
             result = action()
@@ -72,9 +77,9 @@ class TimeLogger:
             self,
             name: str,
             publish_report_every: Optional[Duration] = None,
-            report_publisher: Callable[[Report], None] = lambda report: print_coloured(report)
+            report_publisher: Optional[Callable[[Report], Any]] = None
     ):
-        self._report_publisher = report_publisher
+        self._publisher = report_publisher if report_publisher is not None else lambda report: print_coloured(report)
         self.name: str = name
         self._publish_report_every: Duration = publish_report_every
         self._duration: Duration = Duration(micros=1)
@@ -87,7 +92,7 @@ class TimeLogger:
         self._account_last_actions()
 
         report = self._generate_report()
-        self._report_publisher(report)
+        self._publisher(report)
 
     def shift_time(self):
         if self._ticked_processor is not None:
@@ -100,7 +105,7 @@ class TimeLogger:
             self._account_last_actions()
 
             report = self._generate_report()
-            self._report_publisher(report)
+            self._publisher(report)
 
     def log_processor_tick(self, proc_number: ProcessorNumber):
         if self._ticked_processor is not None:

@@ -9,7 +9,7 @@ from src.saga.simple_saga import SimpleSaga
 sagas = [
     generate_saga()
     for _
-    in range(5000)
+    in range(2000)
 ]
 
 

@@ -1,4 +1,5 @@
 import math
+from abc import ABC, abstractmethod
 from typing import List
 
 from src.log import LogContext
@@ -31,7 +32,17 @@ def _run(executables: List[Executable], system: System) -> Duration:
     return result
 
 
-class ThreadedOrchestrator:
+class Orchestrator(ABC):
+    @abstractmethod
+    def process(self, sagas: List[SimpleSaga]) -> Duration:
+        pass
+
+    @abstractmethod
+    def name(self) -> str:
+        pass
+
+
+class ThreadedOrchestrator(Orchestrator):
     def __init__(
             self,
             processors_number: int,
@@ -42,19 +53,23 @@ class ThreadedOrchestrator:
             processors_count=processors_number,
             processing_mode=processing_mode
         )
+        self.processing_mode = processing_mode
 
     def process(self, sagas: List[SimpleSaga]) -> Duration:
         return _run(executables=sagas, system=self._system)
 
+    def name(self) -> str:
+        return f"threaded_orchestrator_in_{self.processing_mode}_mode"
 
-class CoroutinesOrchestrator:
+
+class CoroutinesOrchestrator(Orchestrator):
     def __init__(
             self,
             processors_number: int,
             system_factory: SystemFactory = SystemFactory(),
             coroutine_saga_factory: CoroutineSagaFactory = CoroutineSagaFactory()
     ):
-        self._processors_count = processors_number
+        self._processors_number = processors_number
         self._system = system_factory.create(
             processors_count=processors_number,
             processing_mode=ProcessingMode.FIXED_POOL_SIZE
@@ -64,8 +79,8 @@ class CoroutinesOrchestrator:
     def process(self, sagas: List[SimpleSaga]) -> Duration:
         coroutines: List[CoroutineSaga] = []
 
-        sagas_bunch_size: int = int(math.ceil(float(len(sagas)) / self._processors_count))
-        for i in range(self._processors_count):
+        sagas_bunch_size: int = int(math.ceil(float(len(sagas)) / self._processors_number))
+        for i in range(self._processors_number):
             if not sagas:
                 break
 
@@ -79,3 +94,6 @@ class CoroutinesOrchestrator:
             sagas = sagas[sagas_bunch_size:]
 
         return _run(executables=coroutines, system=self._system)
+
+    def name(self) -> str:
+        return f"coroutines_orchestrator"

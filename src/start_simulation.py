@@ -1,17 +1,10 @@
-import multiprocessing
-import os
-from asyncio import Future
-from concurrent.futures.thread import ThreadPoolExecutor
 from copy import deepcopy
 from datetime import datetime
-from multiprocessing import cpu_count
-from pathlib import Path
-from signal import signal, SIGINT
-from typing import List, Any, Optional, Callable, TextIO
+from multiprocessing import cpu_count, Pool
+from multiprocessing.pool import ApplyResult
+from typing import List, Any, Optional, TextIO
 
-from jsonpickle import decode
-
-from src.log import LogContext
+from src.log import LogContext, Report
 from src.saga.orchestration import CoroutinesOrchestrator, Orchestrator
 from src.saga.orchestration import ThreadedOrchestrator
 from src.saga.simple_saga import SimpleSaga
@@ -46,54 +39,73 @@ class _SimulationRunner:
     def _sagas_copy(self, number: int) -> List[SimpleSaga]:
         return deepcopy(self.sagas[:number])
 
-    def run(self):
-        this_machine_processors_to_use: int = min(self._number_of_simulations, multiprocessing.cpu_count() + 1)
+    def run_simulations(self):
+        this_machine_processors_to_use: int = min(self._number_of_simulations, cpu_count())
 
         now = datetime.now().strftime("%Y.%m.%d_%H-%M-%S")
         with open(f"out/{now}.log", mode="w") as self.output:
-            print(f"Running simulation in {this_machine_processors_to_use} threads")
+            print(f"Running {self._number_of_simulations} simulation in {this_machine_processors_to_use} processors")
             self._store_intro()
 
-            with ThreadPoolExecutor(max_workers=this_machine_processors_to_use) as executor:
-                self._run_simulations_in_executor(executor)
+            with Pool(processes=this_machine_processors_to_use) as pool:
+                self._run_simulations_in_pool(pool)
+                pool.close()
+                pool.join()
 
             self._store_line("Simulation successfully finished!")
             print("\nSimulation successfully finished!")
 
-    def _run_simulations_in_executor(self, executor: ThreadPoolExecutor):
-        simulation_futures: List[Future] = []
+    def _run_simulations_in_pool(self, pool: Pool):
+        finished: List[int] = [0]
+        results: List[ApplyResult] = []
+
+        self._display_progress_bar(current=0, total=self._number_of_simulations)
+
+        def callback(report: Report):
+            finished[0] = finished[0] + 1
+            self._display_progress_bar(current=finished[0], total=self._number_of_simulations)
+            self._store_line(str(report))
+
+        def error_callback(r: Any):
+            print(f"Simulation error: {r}")
+
         for number_of_sagas in self.number_of_sagas_sets:
-
-            def run_in_parallel(orchestrator_to_run: Orchestrator, short_name: str):
-                sagas_to_process = self._sagas_copy(number_of_sagas)
-                # print(f"Submitting processing of {short_name} with {len(sagas_to_process)} sagas")
-                simulation_futures.append(
-                    executor.submit(
-                        lambda: LogContext.run_logging(
-                            log_name=short_name,
-                            action=lambda: orchestrator_to_run.process(sagas_to_process),
-                            report_publisher=lambda report: self._store_line(str(report))
-                        )
-                    )
-                )
-
+            sagas_to_process = self._sagas_copy(number_of_sagas)
             for number_of_processors in self.processors:
                 for mode in self.thread_orchestrators_modes:
                     orchestrator = _threads_orchestrator(processors=number_of_processors, mode=mode)
-                    run_in_parallel(
-                        orchestrator_to_run=orchestrator,
-                        short_name=f"{orchestrator.name()}[p={number_of_processors}, s={number_of_sagas}]"
+                    results.append(
+                        pool.apply_async(
+                            self._run_simulation,
+                            args=(orchestrator, number_of_processors, sagas_to_process),
+                            callback=callback,
+                            error_callback=error_callback
+                        )
                     )
                 if self.coroutine_orchestrator:
-                    run_in_parallel(
-                        orchestrator_to_run=_coroutines_orchestrator(processors=number_of_processors),
-                        short_name=f"async[p={number_of_processors}, s={number_of_sagas}]"
+                    orchestrator = _coroutines_orchestrator(processors=number_of_processors)
+                    results.append(
+                        pool.apply_async(
+                            self._run_simulation,
+                            args=(orchestrator, number_of_processors, sagas_to_process),
+                            callback=callback
+                        )
                     )
-        finished: int = 0
-        while simulation_futures:
-            self._display_progress_bar(current=finished, total=self._number_of_simulations)
-            simulation_futures.pop(0).result()
-            finished += 1
+
+        for result in results:
+            result.wait()
+
+    @staticmethod
+    def _run_simulation(orchestrator: Orchestrator, processors: int, sagas: List[SimpleSaga]) -> Report:
+        name = f"{orchestrator.name()}, {processors}p, {len(sagas)}s"
+
+        result: List[Report] = []
+        LogContext.run_logging(
+            log_name=name,
+            action=lambda: orchestrator.process(sagas),
+            report_publisher=lambda report: result.append(report)
+        )
+        return result[0]
 
     def _store_intro(self):
         self._store_line(f"Running simulation on the next dataset:")
@@ -142,4 +154,4 @@ def run_simulation(
         number_of_sagas_sets=number_of_sagas_sets,
         thread_orchestrators_modes=thread_orchestrators_modes,
         coroutine_orchestrator=coroutine_orchestrator
-    ).run()
+    ).run_simulations()

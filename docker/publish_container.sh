@@ -1,1 +1,2 @@
-docker build -t badoken/saga_async_evaluation:first_test -f Dockerfile ..
+docker build -t badoken/saga_async_evaluation -f Dockerfile ..
+docker push badoken/saga_async_evaluation

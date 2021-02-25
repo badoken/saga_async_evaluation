@@ -116,23 +116,7 @@ class Duration:
 
     @property
     def as_string(self):
-        string_value = "-" if self.is_negative else ""
-
-        seconds = abs(self._hundreds(int(self.seconds)))
-        if seconds != 0:
-            string_value += f"{seconds}s"
-
-        millis = abs(self._hundreds(int(self.millis)))
-        if millis != 0:
-            string_value += f"{millis}ms"
-
-        micros = abs(self._hundreds(self.micros))
-        if micros != 0:
-            string_value += f"{micros}μs"
-
-        if string_value == "":
-            string_value = "zero"
-        return f"🕒:{string_value}"
+        return f"{self.micros}"
 
     @staticmethod
     def _hundreds(value: int):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import List
+from typing import List, Optional
 
 from src.log import LogContext
 from src.saga.task import Task
@@ -13,6 +13,37 @@ from src.sys.time.time import TimeDelta
 class Executable(TimeAffected, Limited):
     @abstractmethod
     def get_current_tasks(self) -> List[Task]: pass
+
+
+class ChainOfExecutables(Executable):
+    def __init__(self, *executables: Executable):
+        self._executables = list(executables)
+
+    def get_current_tasks(self) -> List[Task]:
+        current = self._current_executable()
+        if current is None:
+            return []
+        return current.get_current_tasks()
+
+    def ticked(self, time_delta: TimeDelta):
+        current = self._current_executable()
+        if current is None:
+            return
+        current.ticked(time_delta)
+
+        if current.is_finished():
+            self._executables.pop(0)
+
+    def is_finished(self) -> bool:
+        return self._current_executable() is None
+
+    def _current_executable(self) -> Optional[Executable]:
+        return next(iter(self._executables), None)
+
+    def __eq__(self, other: ChainOfExecutables) -> bool:
+        if not isinstance(other, type(self)):
+            return False
+        return self._executables == other._executables
 
 
 class KernelThread(TimeAffected, Limited):

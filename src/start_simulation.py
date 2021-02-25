@@ -34,7 +34,9 @@ class _SimulationRunner:
             len(sagas)]
         self.thread_orchestrators_modes: List[ProcessingMode] = thread_orchestrators_modes
         self.coroutine_orchestrator: bool = coroutine_orchestrator
-        self.output: Optional[TextIO] = None
+
+        now = datetime.now().strftime("%Y.%m.%d_%H-%M-%S")
+        self._output_name = f"out/{now}.log"
 
     def _sagas_copy(self, number: int) -> List[SimpleSaga]:
         return deepcopy(self.sagas[:number])
@@ -42,18 +44,16 @@ class _SimulationRunner:
     def run_simulations(self):
         this_machine_processors_to_use: int = min(self._number_of_simulations, cpu_count())
 
-        now = datetime.now().strftime("%Y.%m.%d_%H-%M-%S")
-        with open(f"out/{now}.log", mode="w") as self.output:
-            print(f"Running {self._number_of_simulations} simulation in {this_machine_processors_to_use} processors")
-            self._store_intro()
+        print(f"Running {self._number_of_simulations} simulation in {this_machine_processors_to_use} processors")
+        self._store_intro()
 
-            with Pool(processes=this_machine_processors_to_use) as pool:
-                self._run_simulations_in_pool(pool)
-                pool.close()
-                pool.join()
+        with Pool(processes=this_machine_processors_to_use) as pool:
+            self._run_simulations_in_pool(pool)
+            pool.close()
+            pool.join()
 
-            self._store_line("Simulation successfully finished!")
-            print("\nSimulation successfully finished!")
+        self._store_line("Simulation successfully finished!")
+        print("\nSimulation successfully finished!")
 
     def _run_simulations_in_pool(self, pool: Pool):
         finished: List[int] = [0]
@@ -116,7 +116,8 @@ class _SimulationRunner:
         self._store_line(f"* number of simulations to run={self._number_of_simulations}")
 
     def _store_line(self, line: str):
-        self.output.write(line + "\n")
+        with open(self._output_name, mode="a") as output:
+            output.write(line + "\n")
 
     @property
     def _number_of_simulations(self):
@@ -138,7 +139,7 @@ class _SimulationRunner:
         spaces = ' ' * (bar_length - len(arrow))
         progress_visualisation = arrow + spaces
 
-        print(f'Progress: [{progress_visualisation}] {int(percent)} %   # can hang like that for a long time', end='\r')
+        print(f'Progress: [{progress_visualisation}] {int(percent)}%  ({current} of {total})', end='\r')
 
 
 def run_simulation(

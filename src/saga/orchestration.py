@@ -1,4 +1,4 @@
-import math
+from math import ceil
 from abc import ABC, abstractmethod
 from typing import List
 
@@ -79,7 +79,7 @@ class CoroutinesOrchestrator(Orchestrator):
     def process(self, sagas: List[SimpleSaga]) -> Duration:
         coroutines: List[CoroutineSaga] = []
 
-        sagas_bunch_size: int = int(math.ceil(float(len(sagas)) / self._processors_number))
+        sagas_bunch_size: int = int(ceil(float(len(sagas)) / self._processors_number))
         for i in range(self._processors_number):
             if not sagas:
                 break

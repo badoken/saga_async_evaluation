@@ -45,7 +45,19 @@ class TestDuration(TestCase):
 
         # then
         self.assertEqual(string, representation)
-        self.assertEqual("🕒:25s733ms674μs", string)
+        self.assertEqual("25733674", string)
+
+    def test_string_representation_with_zeroes(self):
+        # given
+        duration = Duration(micros=0, millis=10, seconds=10)
+
+        # when
+        string = duration.__str__()
+        representation = duration.__repr__()
+
+        # then
+        self.assertEqual(string, representation)
+        self.assertEqual("10010000", string)
 
     def test_minus_string_representation(self):
         # given
@@ -57,7 +69,7 @@ class TestDuration(TestCase):
 
         # then
         self.assertEqual(string, representation)
-        self.assertEqual("🕒:-18s266ms326μs", string)
+        self.assertEqual("-18266326", string)
 
     def test_eq(self):
         # given

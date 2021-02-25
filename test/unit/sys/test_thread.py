@@ -5,7 +5,8 @@ from unittest.mock import patch, Mock, call
 from parameterized import parameterized
 
 from src.log import TimeLogger, LogContext
-from src.sys.thread import KernelThread
+from src.saga.task import Task
+from src.sys.thread import KernelThread, ChainOfExecutables
 from src.sys.time.duration import Duration
 from src.sys.time.time import TimeDelta
 from test.unit.sys.factories import create_executable
@@ -104,6 +105,52 @@ class TestKernelThread(TestCase):
 
         # then
         self.assertEqual(expected_result, thread.is_finished())
+
+
+class TestChainOfExecutables(TestCase):
+    def test_is_finished_should_return_false_until_all_executables_are_finished(self):
+        # given
+        ex1 = create_executable(ticks=2, identifier=1)
+        ex2 = create_executable(ticks=3, identifier=2)
+
+        # when
+        chain = ChainOfExecutables(ex1, ex2)
+
+        # then
+        self.assertFalse(chain.is_finished())
+
+        for i in range(4):
+            chain.ticked(TimeDelta(Duration(micros=1)))
+            self.assertFalse(chain.is_finished(), msg=f"had to be not finished after {i + 1} ticks")
+
+        chain.ticked(TimeDelta(Duration(micros=1)))
+        self.assertTrue(chain.is_finished(), msg=f"had to be not finished after 5 ticks")
+
+    def test_is_finished_should_return_true_if_no_executables_specified(self):
+        # when
+        chain = ChainOfExecutables()
+
+        # then
+        self.assertTrue(chain.is_finished())
+
+    def test_get_current_tasks_should_return_current_task_of_a_current_executable(self):
+        # given
+        ex1 = create_executable(ticks=2, identifier=1)
+        ex2 = create_executable(ticks=3, identifier=2)
+
+        expectedTask: Task = Mock()
+        ex2.get_current_tasks = lambda: [expectedTask]
+
+        chain = ChainOfExecutables(ex1, ex2)
+
+        for i in range(2):
+            chain.ticked(TimeDelta(Duration(micros=1)))
+
+        # when
+        actualTasks = chain.get_current_tasks()
+
+        # then
+        self.assertEqual([expectedTask], actualTasks)
 
 
 def given_logging_context_that_provides_logger() -> Mock[TimeLogger]:

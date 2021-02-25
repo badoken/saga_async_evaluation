@@ -14,11 +14,10 @@ def thread_context_switch_overhead() -> Duration:
 def thread_creation_cost() -> Duration:
     # Comparative performance evaluation of Java threads for embedded applications:
     # Linux Thread vs. Green Thread (p. 223)
-    a = Duration(micros=8)
 
-    # Analysis of Optimal Thread Pool Size (p. 46)
-    b = Duration(micros=422)
-    return Duration.avg(a, b)
+    creation = Duration(micros=2)
+    start = Duration(micros=6)
+    return creation + start
 
 
 def thread_destruction_cost() -> Duration:

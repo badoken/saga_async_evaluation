@@ -15,7 +15,7 @@ sagas, _ = generate_and_export(number=2000)
 run_simulation(
     sagas=sagas,
     processors=[4, 8, 20, 40, 80],
-    number_of_sagas_sets=[50, 100, 200, 500, 700, 1000, 1500],
+    number_of_sagas_sets=[1500, 1000, 700, 500, 200, 100, 50],
     thread_orchestrators_modes=[ProcessingMode.FIXED_POOL_SIZE, ProcessingMode.OVERLOADED_PROCESSORS],
     coroutine_orchestrator=True
 )

@@ -16,6 +16,10 @@ run_simulation(
     sagas=sagas,
     processors=[4, 8, 20, 40, 80],
     number_of_sagas_sets=[1500, 1000, 700, 500, 200, 100, 50],
-    thread_orchestrators_modes=[ProcessingMode.FIXED_POOL_SIZE, ProcessingMode.OVERLOADED_PROCESSORS],
+    thread_orchestrators_modes=[
+        ProcessingMode.YIELDING_PROCESSORS,
+        ProcessingMode.FIXED_POOL_SIZE,
+        ProcessingMode.OVERLOADED_PROCESSORS
+    ],
     coroutine_orchestrator=True
 )

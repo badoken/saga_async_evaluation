@@ -11,6 +11,7 @@ class Processor(TimeAffected):
     def __init__(
             self,
             processing_interval: Duration,
+            yielding: bool,
             proc_number: int = -1,
             context_switch_cost: Duration = thread_context_switch_overhead()
     ):
@@ -21,6 +22,8 @@ class Processor(TimeAffected):
         self._processing_slot: Optional[KernelThread] = None
         self._current_thread_processing_duration: Duration = Duration.zero()
         self._context_switch_duration: Duration = Duration.zero()
+        self._yield_allowed: bool = yielding
+        self._yielding: bool = False
 
     def assign(self, thread: KernelThread):
         self._thread_pool.append(thread)
@@ -33,22 +36,28 @@ class Processor(TimeAffected):
         if self._processing_slot is None:
             return
 
-        if self._current_thread_processing_duration >= self.processing_interval and self._thread_pool:
+        should_yield = self._yield_allowed and (self._yielding or self._processing_slot.can_yield())
+        should_finish_timeslice = self._current_thread_processing_duration >= self.processing_interval
+        pool_has_more_threads = len(self._thread_pool) != 0
+
+        if pool_has_more_threads and (should_yield or should_finish_timeslice):
+            self._yielding = True
             LogContext.logger().log_overhead_tick()
             self._context_switch_duration += time_delta.duration
 
             if self._context_switch_duration <= self._context_switch_cost:
                 return
 
+            self._yielding = False
             self._reset_counters()
             unassigned = self._unassign_current()
             self._thread_pool.append(unassigned)
+            return
 
-        else:
-            if not self._processing_slot.is_doing_system_operation():
-                self._current_thread_processing_duration += time_delta.duration
-            self._processing_slot.ticked(time_delta)
-            self._handle_if_finished()
+        if not self._processing_slot.is_doing_system_operation():
+            self._current_thread_processing_duration += time_delta.duration
+        self._processing_slot.ticked(time_delta)
+        self._handle_if_finished()
 
     def is_starving(self) -> bool:
         return self._processing_slot is None and not self._thread_pool
@@ -97,11 +106,17 @@ class ProcessorFactory:
     def new(
             self,
             count: int,
-            processing_interval: Duration
+            processing_interval: Duration,
+            yielding: bool
     ) -> List[Processor]:
         processors = []
         for i in range(count):
             self.last_processor_number += 1
             processors.append(
-                Processor(proc_number=self.last_processor_number, processing_interval=processing_interval))
+                Processor(
+                    proc_number=self.last_processor_number,
+                    processing_interval=processing_interval,
+                    yielding=yielding
+                )
+            )
         return processors

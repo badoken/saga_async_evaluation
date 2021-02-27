@@ -20,7 +20,7 @@ def thread_creation_cost() -> Duration:
     return creation + start
 
 
-def thread_destruction_cost() -> Duration:
+def thread_deallocation_cost() -> Duration:
     # Comparative performance evaluation of Java threads for embedded applications:
     # Linux Thread vs. Green Thread (p. 223)
     return Duration(micros=1)

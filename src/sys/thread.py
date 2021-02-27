@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from src.log import LogContext
 from src.saga.task import Task
-from src.sys.time.constants import thread_creation_cost, thread_destruction_cost
+from src.sys.time.constants import thread_creation_cost, thread_deallocation_cost
 from src.sys.time.time import TimeAffected, Limited
 from src.sys.time.time import TimeDelta
 
@@ -50,7 +50,7 @@ class KernelThread(TimeAffected, Limited):
     def __init__(self, executable: Executable):
         self._executable = executable
         self._init_cool_down = thread_creation_cost()
-        self._destruct_cool_down = thread_destruction_cost()
+        self._destruct_cool_down = thread_deallocation_cost()
 
     def is_doing_system_operation(self) -> bool:
         if self._init_cool_down.is_positive:
@@ -58,6 +58,15 @@ class KernelThread(TimeAffected, Limited):
         if self._executable.is_finished() and self._destruct_cool_down.is_positive:
             return True
         return False
+
+    def can_yield(self) -> bool:
+        if self.is_finished() or self.is_doing_system_operation():
+            return False
+
+        current_task: Optional[Task] = next(iter(self._executable.get_current_tasks()), None)
+        if not current_task:
+            return False
+        return current_task.is_waiting()
 
     def ticked(self, time_delta: TimeDelta):
         if self._init_cool_down.is_positive:
